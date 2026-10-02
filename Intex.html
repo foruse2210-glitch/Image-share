@@ -69,6 +69,21 @@ fetch('/api/upload', {
     console.error('Error:', error);
 });
 
+fetch('/api/download')
+.then(response => response.json())
+.then(data => {
+    const gallery = document.getElementById('gallery');
+    gallery.innerHTML = '<h3>Uploaded Images</h3>';
+    data.images.forEach(image => {
+        const img = document.createElement('img');
+        img.src = image.url;
+        img.style.width = '100px';
+        gallery.appendChild(img);
+    });
+})
+.catch(error => {
+    console.error('Error:', error);
+});
             } else {
                 alert('Please select an image first.');
             }
