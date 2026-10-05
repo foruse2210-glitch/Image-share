@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photo Base - Admin Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+* {
+  box-sizing: border-box;
+}
+
+:root { --accent: #0a84ff; --accent-rgb: 10, 132, 255; }
+
+html {
+  height: 100%;
+  overflow-y: auto;
+}
+
+body {
+  margin: 0;
+  padding: 0 0 60px 0;
+  min-height: 100%;
+  background: #000000;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-y: visible;
+}
+
+header {
+  padding: 20px;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.header-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #ffffff;
+}
+
+.badge {
+  font-size: 12px;
+  background: rgba(var(--accent-rgb), 0.2);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  font-weight: 600;
+}
+
+main {
+  max-width: 1100px;
+  margin: auto;
+  padding: 28px 16px;
+}
+
+/* Stats Metric Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.stat-title {
+  color: #86868b;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Controls & Search Bar */
+.controls-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 240px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  backdrop-filter: blur(10px);
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.3);
+}
+
+/* Base Buttons */
+.btn {
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 21px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  font-size: 12px;
+}
+
+.btn-danger {
+  color: #ff453a;
+  background: rgba(255, 69, 58, 0.15);
+  border-color: rgba(255, 69, 58, 0.3);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(255, 69, 58, 0.3);
+}
+
+.btn-danger:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Data Table Container */
+.table-container {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  overflow-x: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  min-width: 600px;
+}
+
+th, td {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+}
+
+th {
+  background: rgba(255, 255, 255, 0.04);
+  color: #86868b;
+  font-weight: 600;
+}
+
+tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.thumb-preview {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Status Indicator */
+#status {
+  text-align: center;
+  color: #86868b;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+/* Modals */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(20px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.modal.open { display: flex; }
+
+.modal-content {
+  background: rgba(30, 30, 32, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  margin: 8px 0 16px;
+  outline: none;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-cancel { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.modal-confirm { background: #ff453a; color: #fff; }
+.modal-save { background: var(--accent); color: #fff; }
+
+/* Hidden-photo styling */
+.row-hidden { opacity: 0.55; }
+.hidden-tag { display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 600; color: #ff9f0a; background: rgba(255,159,10,0.15); border: 1px solid rgba(255,159,10,0.35); padding: 2px 8px; border-radius: 10px; vertical-align: middle; }
+.btn-warn { color: #ff9f0a; background: rgba(255,159,10,0.15); border-color: rgba(255,159,10,0.35); }
+.btn-warn:hover:not(:disabled) { background: rgba(255,159,10,0.3); }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Site theme controls */
+.theme-modal { max-height: 90vh; overflow-y: auto; max-width: 420px; }
+.theme-label { text-align: left; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #86868b; margin: 4px 0 10px; }
+.theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.theme-opt { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2); border-radius: 14px; padding: 8px 8px 10px; color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+.theme-opt:hover { border-color: rgba(255,255,255,0.45); }
+.theme-opt.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.theme-preview { height: 34px; border-radius: 8px; margin-bottom: 8px; border: 1px solid rgba(128,128,128,0.35); position: relative; overflow: hidden; }
+.theme-preview::after { content: ""; position: absolute; left: 8px; bottom: 7px; width: 40%; height: 6px; border-radius: 3px; background: var(--pv-accent, #0a84ff); }
+.accent-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 12px; }
+.accent-dot { width: 34px; height: 34px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); cursor: pointer; padding: 0; transition: transform 0.2s ease, box-shadow 0.2s ease; display: block; }
+.accent-dot:hover { transform: scale(1.1); }
+.accent-dot.active { box-shadow: 0 0 0 3px #1e1e20, 0 0 0 5px #fff; }
+.accent-custom { position: relative; overflow: hidden; background: conic-gradient(#ff375f, #ff9f0a, #ffd60a, #30d158, #40c8e0, #0a84ff, #bf5af2, #ff375f); }
+.modal-content .accent-custom input { position: absolute; inset: -10px; width: 60px; height: 60px; opacity: 0; cursor: pointer; margin: 0; padding: 0; border: none; }
+#themeMsg, #passMsg { min-height: 18px; font-size: 13px; color: #86868b; margin-bottom: 12px; }
+
+/* ---------- Mobile friendly layout ---------- */
+html { -webkit-text-size-adjust: 100%; }
+body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+
+@media (max-width: 650px) {
+  header { position: static; padding: 14px 12px; }
+  .header-container { flex-direction: column; align-items: stretch; gap: 10px; }
+  h1 { font-size: 20px; text-align: center; }
+  .header-right { flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .header-right .btn { flex: 1 1 calc(50% - 8px); justify-content: center; height: 42px; font-size: 13px; padding: 0 10px; }
+  .header-right .badge { order: -1; flex: 1 1 100%; text-align: center; }
+
+  main { padding: 16px 12px; }
+  #status { font-size: 13px; margin-bottom: 12px; }
+
+  .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat-card { padding: 12px 10px; border-radius: 14px; text-align: center; }
+  .stat-title { font-size: 10px; margin-bottom: 4px; letter-spacing: 0.3px; }
+  .stat-value { font-size: 20px; }
+
+  .controls-bar { margin-bottom: 12px; }
+  .controls-bar .btn { width: 100%; justify-content: center; height: 46px; }
+
+  .table-container { overflow-x: hidden; border-radius: 16px; }
+  table { min-width: 0; display: block; }
+  thead, tbody { display: block; }
+  thead tr { display: block; }
+  thead th { display: none; }
+  thead th:first-child {
+    display: flex !important; align-items: center; width: auto !important;
+    padding: 12px 14px; font-size: 13px;
+  }
+  thead th:first-child::after { content: "Select all"; margin-left: 10px; font-weight: 600; }
+
+  tbody tr {
+    display: grid;
+    grid-template-columns: 28px 64px 1fr auto;
+    grid-template-areas: "chk img name act" "chk img date act";
+    column-gap: 12px;
+    row-gap: 2px;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  tbody td { display: block; padding: 0; border: none; min-width: 0; }
+  tbody td:nth-child(1) { grid-area: chk; }
+  tbody td:nth-child(2) { grid-area: img; }
+  tbody td:nth-child(3) { grid-area: name; align-self: end; word-break: break-word; font-size: 14px; }
+  tbody td:nth-child(4) { grid-area: date; align-self: start; font-size: 12px; }
+  tbody td:nth-child(5) { grid-area: act; }
+  tbody td.empty-row { grid-column: 1 / -1; grid-area: auto; }
+  .thumb-preview { width: 64px; height: 64px; }
+  .row-checkbox, #selectAllCheckbox { width: 20px; height: 20px; }
+
+  .modal { padding: 12px; align-items: center; }
+  .modal-content { padding: 22px 16px; border-radius: 18px; }
+  .modal-content input { font-size: 16px; }
+  .theme-grid { gap: 8px; }
+  .modal-btn { padding: 14px 12px; }
+}
+
+#websiteCloseBtn.btn-danger {
+  background: rgba(255, 69, 58, 0.18);
+  border-color: rgba(255, 69, 58, 0.55);
+  color: #ff453a;
+}
+#websiteCloseBtn:not(.btn-danger) {
+  border-color: rgba(255, 69, 58, 0.45);
+  color: #ff453a;
+}
+#websiteCloseBtn {
+  box-shadow: 0 0 14px rgba(255,69,58,.18);
+}
+
+.badge { cursor: pointer; }
+.badge.bad { background: rgba(255,69,58,0.2); color: #ff453a; border-color: rgba(255,69,58,0.4); }
+.theme-grid { grid-template-columns: repeat(3, 1fr); }
+.thumb-preview { background: rgba(255,255,255,0.06); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-container">
+    <h1>Photo Base Dashboard</h1>
+    <div class="header-right">
+      <button class="btn btn-sm" id="uploadToggleBtn">Pause Uploads</button>
+      <button class="btn btn-sm" id="websiteCloseBtn">Close Website</button>
+      <button class="btn btn-sm" id="appearanceBtn">Site Theme</button>
+      <button class="btn btn-sm" id="changePasswordBtn">Change Password</button>
+      <span class="badge" id="connBadge" title="Tap to re-check the website connection">Checking…</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="status">Syncing with database...</div>
+
+  <!-- Analytics Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-title">Total Photos</div>
+      <div class="stat-value" id="statTotalPhotos">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-title">Added Today</div>
+      <div class="stat-value" id="statTodayPhotos">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-title">Est. Storage Used</div>
+      <div class="stat-value" id="statStorageSize">0 MB</div>
+    </div>
+  </div>
+
+  <!-- Table Action Controls -->
+  <div class="controls-bar">
+    <button id="hideSelectedBtn" class="btn btn-warn" disabled>
+      Hide Selected
+    </button>
+    <button id="showSelectedBtn" class="btn" disabled>
+      Show Selected
+    </button>
+    <button id="deleteSelectedBtn" class="btn btn-danger" disabled>
+      Delete Selected (<span id="selectCount">0</span>)
+    </button>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox"></th>
+          <th style="width: 70px;">Preview</th>
+          <th>File Name</th>
+          <th>Date Uploaded</th>
+          <th style="width: 110px;">Visibility</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- Rows rendered via JS -->
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Change Delete Password Modal -->
+<div id="changePasswordModal" class="modal">
+  <div class="modal-content">
+    <h3>Change Delete Password</h3>
+    <p style="color:#86868b; font-size:14px; margin-bottom:8px;">Sets the password the main website asks for before deleting photos.</p>
+    <input type="text" id="newPassInput" placeholder="New Password" autocomplete="off">
+    <div id="passMsg"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" id="cancelChangePassBtn" type="button">Cancel</button>
+      <button class="modal-btn modal-save" id="confirmChangePassBtn" type="button">Update Password</button>
+    </div>
+  </div>
+</div>
+
+<!-- Site Theme Modal -->
+<div id="appearanceModal" class="modal">
+  <div class="modal-content theme-modal">
+    <h3>Website Theme</h3>
+    <p style="color:#86868b; font-size:14px; margin-bottom:12px;">Changes apply to the main website for everyone.</p>
+    <div class="theme-label">Theme</div>
+    <div id="themeGrid" class="theme-grid"></div>
+    <div class="theme-label">Accent</div>
+    <div id="accentRow" class="accent-row"></div>
+    <div id="themeMsg"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" id="resetThemeBtn" type="button">Reset</button>
+      <button class="modal-btn modal-save" id="closeAppearanceBtn" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://wykfkkleyhrdeimkirxv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_h-O7O9zu3i9PyXY99g1H5g_9gDIKTA2';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const statusEl = document.getElementById('status');
+const tableBody = document.getElementById('tableBody');
+const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+const selectCountEl = document.getElementById('selectCount');
+const hideSelectedBtn = document.getElementById('hideSelectedBtn');
+const showSelectedBtn = document.getElementById('showSelectedBtn');
+
+let currentPhotos = [];
+let selectedPhotoIds = new Set();
+
+const PAGE = 40;                 // rows rendered at a time
+let shown = PAGE;
+let loading = false, lastSig = '', warnedSlow = false;
+const thumbCache = new Map();    // id -> small thumbnail (fetched once, kept in memory)
+const byId = new Map();
+const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+
+// Light query: no image data. Uses the photos_admin view (has file size); falls back to photos without size.
+async function fetchMeta() {
+  let r = await supabaseClient.from('photos_admin').select('id,name,created_at,hidden,size').order('created_at', { ascending: false });
+  if (r.error) {
+    r = await supabaseClient.from('photos').select('id,name,created_at,hidden').order('created_at', { ascending: false });
+    if (!r.error && !warnedSlow) { warnedSlow = true; console.info('Run the updated supabase_setup.sql to enable storage stats.'); }
+  }
+  return r;
+}
+
+function sigOf(rows) { return rows.map(p => p.id + (p.hidden ? 'h' : 'v') + (p.name || '')).join('|'); }
+
+async function loadDashboard(force) {
+  if (document.hidden && !force) return;
+  if (loading && !force) return;
+  loading = true;
+  const { data, error } = await fetchMeta();
+  loading = false;
+
+  if (error) {
+    statusEl.textContent = 'Failed to load records: ' + error.message;
+    return;
+  }
+  statusEl.textContent = `Dashboard updated: ${new Date().toLocaleTimeString()}`;
+
+  const rows = data || [];
+  const sig = sigOf(rows);
+  if (sig === lastSig) return;      // nothing changed: skip re-render
+  lastSig = sig;
+
+  currentPhotos = rows;
+  byId.clear();
+  rows.forEach(p => byId.set(String(p.id), p));
+  const live = new Set(rows.map(p => p.id));
+  selectedPhotoIds.forEach(id => { if (!live.has(id)) selectedPhotoIds.delete(id); });
+
+  calculateStats();
+  renderTable();
+}
+
+function calculateStats() {
+  document.getElementById('statTotalPhotos').textContent = currentPhotos.length;
+
+  const today = new Date().toDateString();
+  document.getElementById('statTodayPhotos').textContent =
+    currentPhotos.filter(p => new Date(p.created_at).toDateString() === today).length;
+
+  const hasSize = currentPhotos.length === 0 || currentPhotos[0].size !== undefined;
+  const bytes = currentPhotos.reduce((n, p) => n + (p.size || 0), 0);
+  document.getElementById('statStorageSize').textContent = hasSize ? (bytes / (1024 * 1024)).toFixed(2) + ' MB' : '—';
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* Thumbnails: loaded only when a row scrolls into view, shrunk to 128px, cached */
+const thumbQueue = [];
+let thumbBusy = 0;
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    io.unobserve(e.target);
+    const id = e.target.dataset.id;
+    if (thumbCache.has(id)) { e.target.src = thumbCache.get(id); return; }
+    thumbQueue.push(e.target);
+    pumpThumbs();
+  });
+}, { rootMargin: '300px' });
+
+function pumpThumbs() {
+  while (thumbBusy < 3 && thumbQueue.length) {
+    const img = thumbQueue.shift();
+    if (!img.isConnected) continue;
+    thumbBusy++;
+    loadThumb(img).catch(() => {}).finally(() => { thumbBusy--; pumpThumbs(); });
+  }
+}
+
+async function loadThumb(img) {
+  const id = img.dataset.id;
+  if (thumbCache.has(id)) { img.src = thumbCache.get(id); return; }
+  const p = byId.get(id);
+  if (!p) return;
+  const { data } = await supabaseClient.from('photos').select('data').eq('id', p.id).maybeSingle();
+  if (!data || !data.data) return;
+  const url = await makeThumb(data.data);
+  thumbCache.set(id, url);
+  if (img.isConnected) img.src = url;
+}
+
+function makeThumb(src) {
+  return new Promise(resolve => {
+    const im = new Image();
+    im.onload = () => {
+      const r = Math.min(1, 128 / Math.max(im.width, im.height));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(im.width * r));
+      c.height = Math.max(1, Math.round(im.height * r));
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      resolve(c.toDataURL('image/jpeg', 0.6));
+    };
+    im.onerror = () => resolve(src);
+    im.src = src;
+  });
+}
+
+function renderTable() {
+  if (currentPhotos.length === 0) {
+    tableBody.innerHTML = `<tr><td class="empty-row" colspan="5" style="text-align:center; color:#86868b; padding: 40px;">No photos found.</td></tr>`;
+    updateSelectionState();
+    return;
+  }
+
+  const visible = currentPhotos.slice(0, shown);
+  let html = '';
+  for (const photo of visible) {
+    const id = escapeHtml(photo.id);
+    const cached = thumbCache.get(String(photo.id));
+    html += `<tr class="${photo.hidden ? 'row-hidden' : ''}">
+      <td><input type="checkbox" class="row-checkbox" data-id="${id}" ${selectedPhotoIds.has(photo.id) ? 'checked' : ''}></td>
+      <td><img src="${cached || BLANK}" data-id="${id}" class="thumb-preview" alt="" ${cached ? '' : 'data-lazy="1"'}></td>
+      <td style="font-weight: 500;">${escapeHtml(photo.name || 'Untitled Photo')}${photo.hidden ? '<span class="hidden-tag">Hidden</span>' : ''}</td>
+      <td style="color:#86868b;">${new Date(photo.created_at).toLocaleString()}</td>
+      <td><button type="button" class="btn btn-sm toggle-hide-btn ${photo.hidden ? '' : 'btn-warn'}" data-id="${id}">${photo.hidden ? 'Show' : 'Hide'}</button></td>
+    </tr>`;
+  }
+  if (currentPhotos.length > shown) {
+    html += `<tr><td class="empty-row" colspan="5" style="text-align:center; padding: 16px;"><button type="button" class="btn btn-sm" id="moreBtn">Show more (${currentPhotos.length - shown} left)</button></td></tr>`;
+  }
+  tableBody.innerHTML = html;
+  tableBody.querySelectorAll('img[data-lazy]').forEach(img => io.observe(img));
+  updateSelectionState();
+}
+
+/* One set of listeners for the whole table (instead of per row) */
+tableBody.addEventListener('click', e => {
+  const t = e.target;
+  if (t.id === 'moreBtn') { shown += PAGE; renderTable(); return; }
+  const btn = t.closest('.toggle-hide-btn');
+  if (btn) {
+    const p = byId.get(btn.dataset.id);
+    if (!p) return;
+    btn.disabled = true;
+    setPhotosHidden([p.id], !p.hidden);
+  }
+});
+tableBody.addEventListener('change', e => {
+  if (!e.target.classList.contains('row-checkbox')) return;
+  const p = byId.get(e.target.dataset.id);
+  if (!p) return;
+  if (e.target.checked) selectedPhotoIds.add(p.id); else selectedPhotoIds.delete(p.id);
+  updateSelectionState();
+});
+
+function updateSelectionState() {
+  const count = selectedPhotoIds.size;
+  selectCountEl.textContent = count;
+  deleteSelectedBtn.disabled = count === 0;
+  hideSelectedBtn.disabled = count === 0;
+  showSelectedBtn.disabled = count === 0;
+  selectAllCheckbox.checked = count > 0 && count === currentPhotos.length;
+}
+
+selectAllCheckbox.addEventListener('change', (e) => {
+  if (e.target.checked) {
+    currentPhotos.forEach(p => selectedPhotoIds.add(p.id));
+  } else {
+    selectedPhotoIds.clear();
+  }
+  renderTable();
+});
+
+/* Hide / Show Photos Flow */
+async function setPhotosHidden(ids, hidden) {
+  if (!ids.length) return;
+  statusEl.textContent = hidden ? 'Hiding photos...' : 'Showing photos...';
+  const { data, error } = await supabaseClient
+    .from('photos').update({ hidden: hidden }).in('id', ids).select('id');
+  if (error) {
+    alert('Could not update photos: ' + error.message);
+  } else if (!data || data.length === 0) {
+    alert('Update was blocked by the database. Check the UPDATE policy on the photos table and that the hidden column exists (run supabase_setup.sql).');
+  } else {
+    statusEl.textContent = (hidden ? 'Hidden on the website: ' : 'Visible on the website: ') + data.length;
+  }
+  await loadDashboard(true);
+}
+
+hideSelectedBtn.addEventListener('click', async () => {
+  const ids = Array.from(selectedPhotoIds);
+  await setPhotosHidden(ids, true);
+});
+showSelectedBtn.addEventListener('click', async () => {
+  const ids = Array.from(selectedPhotoIds);
+  await setPhotosHidden(ids, false);
+});
+
+/* Delete Flow */
+deleteSelectedBtn.addEventListener('click', async () => {
+  const ids = Array.from(selectedPhotoIds);
+  if (ids.length === 0) return;
+  if (!confirm('Delete ' + ids.length + (ids.length === 1 ? ' photo?' : ' photos?'))) return;
+
+  statusEl.textContent = 'Deleting selected records...';
+  const { data, error } = await supabaseClient.from('photos').delete().in('id', ids).select('id');
+
+  if (error) {
+    alert('Delete error: ' + error.message);
+  } else if (!data || data.length === 0) {
+    alert('Delete was blocked by the database (no rows deleted). Check the DELETE policy on the photos table.');
+  } else {
+    selectedPhotoIds.clear();
+  }
+  await loadDashboard(true);
+});
+
+/* Pause / Resume Uploads & Downloads Flow */
+const siteToggles = {
+  uploads_paused: {
+    btn: document.getElementById('uploadToggleBtn'),
+    on: 'Resume Uploads', off: 'Pause Uploads',
+    onMsg: 'Uploads paused on the website.', offMsg: 'Uploads resumed on the website.',
+    paused: false, busy: false
+  }
+};
+
+function renderToggle(t) {
+  t.btn.textContent = t.paused ? t.on : t.off;
+  t.btn.classList.toggle('btn-danger', t.paused);
+}
+
+async function loadUploadState() {
+  if (Object.values(siteToggles).some(t => t.busy)) return;
+  const { data, error } = await supabaseClient
+    .from('site_appearance').select('key,value').in('key', Object.keys(siteToggles));
+  if (error) return;
+  const map = {};
+  (data || []).forEach(r => { map[r.key] = String(r.value); });
+  Object.keys(siteToggles).forEach(k => {
+    siteToggles[k].paused = map[k] === 'true';
+    renderToggle(siteToggles[k]);
+  });
+}
+
+Object.keys(siteToggles).forEach(key => {
+  const t = siteToggles[key];
+  t.btn.addEventListener('click', async () => {
+    if (t.busy) return;
+    t.busy = true;
+    const next = !t.paused;
+    t.btn.disabled = true;
+    const { data, error } = await supabaseClient
+      .from('site_appearance')
+      .upsert({ key: key, value: next ? 'true' : 'false' }, { onConflict: 'key' })
+      .select('key');
+    t.btn.disabled = false;
+    t.busy = false;
+    if (error) {
+      alert('Could not change setting: ' + error.message);
+    } else if (!data || data.length === 0) {
+      alert('Blocked by the database. Check the site_appearance policies.');
+    } else {
+      t.paused = next;
+      renderToggle(t);
+      statusEl.textContent = t.paused ? t.onMsg : t.offMsg;
+    }
+  });
+});
+
+/* Close / Open Public Website Flow */
+const websiteCloseBtn = document.getElementById('websiteCloseBtn');
+let websiteClosed = false;
+let websiteCloseBusy = false;
+
+function renderWebsiteCloseButton() {
+  websiteCloseBtn.textContent = websiteClosed ? 'Open Website' : 'Close Website';
+  websiteCloseBtn.classList.toggle('btn-danger', !websiteClosed);
+  websiteCloseBtn.title = websiteClosed ? 'Reopen the public website' : 'Close the public website for visitors';
+}
+
+async function loadWebsiteClosedState() {
+  const { data, error } = await supabaseClient
+    .from('site_appearance').select('value').eq('key', 'website_closed').maybeSingle();
+  if (!error && data) websiteClosed = String(data.value) === 'true';
+  renderWebsiteCloseButton();
+}
+
+websiteCloseBtn.addEventListener('click', async () => {
+  if (websiteCloseBusy) return;
+  const next = !websiteClosed;
+  const message = next
+    ? 'Close the public website for everyone? Visitors will see a Website Closed screen.'
+    : 'Reopen the public website for everyone?';
+  if (!confirm(message)) return;
+
+  websiteCloseBusy = true;
+  websiteCloseBtn.disabled = true;
+  websiteCloseBtn.textContent = next ? 'Closing...' : 'Opening...';
+
+  const { data, error } = await supabaseClient
+    .from('site_appearance')
+    .upsert({ key: 'website_closed', value: next ? 'true' : 'false' }, { onConflict: 'key' })
+    .select('key');
+
+  websiteCloseBtn.disabled = false;
+  websiteCloseBusy = false;
+
+  if (error) {
+    renderWebsiteCloseButton();
+    alert('Could not change website status: ' + error.message);
+    return;
+  }
+  if (!data || data.length === 0) {
+    renderWebsiteCloseButton();
+    alert('Blocked by the database. Check INSERT/UPDATE policies on site_appearance.');
+    return;
+  }
+
+  websiteClosed = next;
+  renderWebsiteCloseButton();
+  statusEl.textContent = websiteClosed ? 'Website closed for visitors.' : 'Website reopened for visitors.';
+});
+
+loadWebsiteClosedState();
+setInterval(loadWebsiteClosedState, 10000);
+
+/* Change Delete Password Flow */
+const changePasswordBtn = document.getElementById('changePasswordBtn');
+const changePasswordModal = document.getElementById('changePasswordModal');
+const newPassInput = document.getElementById('newPassInput');
+const passMsgEl = document.getElementById('passMsg');
+
+changePasswordBtn.addEventListener('click', () => {
+  newPassInput.value = '';
+  passMsgEl.textContent = '';
+  changePasswordModal.classList.add('open');
+  newPassInput.focus();
+});
+
+document.getElementById('cancelChangePassBtn').addEventListener('click', () => {
+  changePasswordModal.classList.remove('open');
+});
+
+document.getElementById('confirmChangePassBtn').addEventListener('click', async () => {
+  const newPass = newPassInput.value.trim();
+  if (!newPass) {
+    passMsgEl.textContent = 'Please enter a new password.';
+    return;
+  }
+  passMsgEl.textContent = 'Saving...';
+  const { data, error } = await supabaseClient
+    .from('site_appearance')
+    .upsert({ key: 'delete_password', value: newPass }, { onConflict: 'key' })
+    .select('key');
+  if (error) {
+    passMsgEl.textContent = 'Save failed: ' + error.message;
+  } else if (!data || data.length === 0) {
+    passMsgEl.textContent = 'Save blocked by the database. Check the site_appearance policies.';
+  } else {
+    passMsgEl.textContent = '';
+    changePasswordModal.classList.remove('open');
+    alert('Delete password updated.');
+  }
+});
+
+/* Site Theme Flow */
+const SITE_THEMES = {
+  auto:     { name: 'Auto',     bg: 'linear-gradient(90deg,#000 50%,#f5f5f7 50%)' },
+  dark:     { name: 'Dark',     bg: '#000000' },
+  light:    { name: 'Light',    bg: '#f5f5f7' },
+  midnight: { name: 'Midnight', bg: '#0a1128' },
+  warm:     { name: 'Warm',     bg: '#1a1410' },
+  ocean:    { name: 'Ocean',    bg: '#06181f' },
+  forest:   { name: 'Forest',   bg: '#0a1a12' },
+  rose:     { name: 'Rose',     bg: '#1c0f17' },
+  paper:    { name: 'Paper',    bg: '#f6f1e7' }
+};
+const SITE_ACCENTS = [
+  { name: 'Blue', hex: '#0a84ff' }, { name: 'Purple', hex: '#bf5af2' }, { name: 'Pink', hex: '#ff375f' },
+  { name: 'Orange', hex: '#ff9f0a' }, { name: 'Green', hex: '#30d158' }, { name: 'Teal', hex: '#40c8e0' },
+  { name: 'Red', hex: '#ff453a' }, { name: 'Yellow', hex: '#ffd60a' }, { name: 'Indigo', hex: '#5e5ce6' },
+  { name: 'Mint', hex: '#63e6be' }, { name: 'Coral', hex: '#ff7a59' }, { name: 'Lime', hex: '#a3e635' }
+];
+const SITE_DEFAULT = { theme: 'dark', accent: '#0a84ff' };
+let siteAppearance = { ...SITE_DEFAULT };
+
+const appearanceBtn = document.getElementById('appearanceBtn');
+const appearanceModal = document.getElementById('appearanceModal');
+const themeGridEl = document.getElementById('themeGrid');
+const accentRowEl = document.getElementById('accentRow');
+const themeMsgEl = document.getElementById('themeMsg');
+
+async function loadSiteAppearance() {
+  const { data, error } = await supabaseClient
+    .from('site_appearance').select('value').eq('key', 'appearance').maybeSingle();
+  if (error) {
+    themeMsgEl.textContent = 'Could not load saved theme: ' + error.message;
+    return;
+  }
+  if (data && data.value) {
+    try {
+      const v = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+      if (SITE_THEMES[v.theme] && /^#[0-9a-fA-F]{6}$/.test(v.accent || '')) siteAppearance = { theme: v.theme, accent: v.accent };
+    } catch (e) {}
+  }
+}
+
+async function saveSiteAppearance() {
+  themeMsgEl.textContent = 'Saving...';
+  const { data, error } = await supabaseClient
+    .from('site_appearance')
+    .upsert({ key: 'appearance', value: JSON.stringify(siteAppearance) }, { onConflict: 'key' })
+    .select('key');
+  if (error) {
+    themeMsgEl.textContent = 'Save failed: ' + error.message + ' (see site_appearance table setup)';
+  } else if (!data || data.length === 0) {
+    themeMsgEl.textContent = 'Save blocked by the database. Add INSERT/UPDATE policies on site_appearance.';
+  } else {
+    themeMsgEl.textContent = 'Saved. The website will update within a few seconds.';
+  }
+}
+
+function applyDashAccent(hex) {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r = document.documentElement.style;
+  r.setProperty('--accent', hex);
+  r.setProperty('--accent-rgb', [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(', '));
+}
+
+function renderSiteThemeUI() {
+  applyDashAccent(siteAppearance.accent);
+  themeGridEl.innerHTML = '';
+  Object.keys(SITE_THEMES).forEach(key => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'theme-opt' + (siteAppearance.theme === key ? ' active' : '');
+    const pv = document.createElement('div');
+    pv.className = 'theme-preview';
+    pv.style.background = SITE_THEMES[key].bg;
+    pv.style.setProperty('--pv-accent', siteAppearance.accent);
+    b.appendChild(pv);
+    b.appendChild(document.createTextNode(SITE_THEMES[key].name));
+    b.addEventListener('click', () => { siteAppearance.theme = key; renderSiteThemeUI(); saveSiteAppearance(); });
+    themeGridEl.appendChild(b);
+  });
+
+  accentRowEl.innerHTML = '';
+  const presets = SITE_ACCENTS.map(a => a.hex.toLowerCase());
+  SITE_ACCENTS.forEach(ac => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.title = ac.name;
+    dot.className = 'accent-dot' + (siteAppearance.accent.toLowerCase() === ac.hex.toLowerCase() ? ' active' : '');
+    dot.style.background = ac.hex;
+    dot.addEventListener('click', () => { siteAppearance.accent = ac.hex; renderSiteThemeUI(); saveSiteAppearance(); });
+    accentRowEl.appendChild(dot);
+  });
+
+  const custom = document.createElement('label');
+  custom.className = 'accent-dot accent-custom' + (presets.includes(siteAppearance.accent.toLowerCase()) ? '' : ' active');
+  custom.title = 'Custom colour';
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = siteAppearance.accent;
+  inp.addEventListener('change', () => { siteAppearance.accent = inp.value; renderSiteThemeUI(); saveSiteAppearance(); });
+  custom.appendChild(inp);
+  accentRowEl.appendChild(custom);
+}
+
+appearanceBtn.addEventListener('click', async () => {
+  themeMsgEl.textContent = '';
+  appearanceModal.classList.add('open');
+  renderSiteThemeUI();
+  await loadSiteAppearance();
+  renderSiteThemeUI();
+});
+document.getElementById('closeAppearanceBtn').addEventListener('click', () => appearanceModal.classList.remove('open'));
+appearanceModal.addEventListener('click', e => { if (e.target === appearanceModal) appearanceModal.classList.remove('open'); });
+document.getElementById('resetThemeBtn').addEventListener('click', () => {
+  siteAppearance = { ...SITE_DEFAULT };
+  renderSiteThemeUI();
+  saveSiteAppearance();
+});
+
+/* Connection check: tells you exactly what is blocking the dashboard <-> website link */
+let connProblems = [];
+async function checkConnection() {
+  const b = document.getElementById('connBadge');
+  connProblems = [];
+  const a = await supabaseClient.from('site_appearance').select('key').limit(1);
+  if (a.error) connProblems.push('site_appearance table: ' + a.error.message);
+  const p = await supabaseClient.from('photos').select('id,hidden').limit(1);
+  if (p.error) connProblems.push('photos.hidden column: ' + p.error.message);
+  const ok = connProblems.length === 0;
+  b.textContent = ok ? 'Live · connected' : 'Not connected';
+  b.classList.toggle('bad', !ok);
+  if (!ok) statusEl.textContent = 'Connection problem - ' + connProblems[0] + ' (run supabase_setup.sql in the Supabase SQL Editor)';
+}
+document.getElementById('connBadge').addEventListener('click', async () => {
+  await checkConnection();
+  alert(connProblems.length ? connProblems.join('\n') : 'Connected. Theme, pause and hide controls reach the website.');
+});
+
+// The old global "Hide Photos" switch is gone; make sure it can't be left on with no way to undo it
+(async () => {
+  const { data } = await supabaseClient.from('site_appearance').select('value').eq('key', 'downloads_paused').maybeSingle();
+  if (data && String(data.value) === 'true') {
+    await supabaseClient.from('site_appearance').upsert({ key: 'downloads_paused', value: 'false' }, { onConflict: 'key' });
+  }
+})();
+
+// Sync database state periodically
+checkConnection();
+loadSiteAppearance().then(() => applyDashAccent(siteAppearance.accent));
+loadDashboard();
+loadUploadState();
+setInterval(() => loadDashboard(), 30000);
+setInterval(() => { if (!document.hidden) loadUploadState(); }, 10000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { loadDashboard(true); loadUploadState(); } });
+let rtTimer = null;
+try {
+  supabaseClient.channel('dash-live')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'photos' }, () => {
+      clearTimeout(rtTimer); rtTimer = setTimeout(() => loadDashboard(true), 400);
+    })
+    .subscribe();
+} catch (e) { console.warn('Realtime unavailable, using polling', e); }
+</script>
+</body>
+</html>
