@@ -1,0 +1,2288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Photos Base - Admin Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+* {
+  box-sizing: border-box;
+}
+
+:root { --accent: #0a84ff; --accent-rgb: 10, 132, 255; }
+
+html {
+  height: 100%;
+  overflow-y: auto;
+}
+
+body {
+  margin: 0;
+  padding: 0 0 60px 0;
+  min-height: 100%;
+  background: #000000;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-y: visible;
+}
+
+header {
+  padding: 20px;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.header-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #ffffff;
+}
+
+.title-link {
+  color: inherit;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.2s ease;
+}
+.title-link:hover, .title-link:active { color: var(--accent); }
+
+.badge {
+  font-size: 12px;
+  background: rgba(var(--accent-rgb), 0.2);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  font-weight: 600;
+}
+
+main {
+  max-width: 1100px;
+  margin: auto;
+  padding: 28px 16px;
+}
+
+/* Stats Metric Cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.2);
+}
+
+.stat-title {
+  color: #86868b;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+/* Controls & Search Bar */
+.controls-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 240px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+  font-size: 14px;
+  outline: none;
+  backdrop-filter: blur(10px);
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.3);
+}
+
+/* Base Buttons */
+.btn {
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 21px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  font-size: 12px;
+}
+
+.btn-accent {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.15);
+  border-color: rgba(var(--accent-rgb), 0.35);
+}
+.btn-accent:hover:not(:disabled) { background: rgba(var(--accent-rgb), 0.3); }
+.btn-accent { position: relative; overflow: hidden; }
+.btn-accent::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: var(--p, 0%);
+  background: rgba(var(--accent-rgb), 0.55);
+  transition: width 0.3s ease;
+  pointer-events: none;
+}
+.btn-accent > * { position: relative; z-index: 1; }
+.btn-accent:disabled { cursor: wait; }
+
+.btn-danger {
+  color: #ff453a;
+  background: rgba(255, 69, 58, 0.15);
+  border-color: rgba(255, 69, 58, 0.3);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: rgba(255, 69, 58, 0.3);
+}
+
+.btn-danger:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Data Table Container */
+.table-container {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 20px;
+  overflow-x: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  min-width: 600px;
+}
+
+th, td {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 14px;
+}
+
+th {
+  background: rgba(255, 255, 255, 0.04);
+  color: #86868b;
+  font-weight: 600;
+}
+
+tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.thumb-preview {
+  width: 50px;
+  height: 50px;
+  border-radius: 10px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Status Indicator */
+#status {
+  text-align: center;
+  color: #86868b;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+/* Modals */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(20px);
+  z-index: 100;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.modal.open { display: flex; }
+
+.modal-content {
+  background: rgba(30, 30, 32, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  padding: 28px 24px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+}
+
+.modal-content input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  margin: 8px 0 16px;
+  outline: none;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-cancel { background: rgba(255, 255, 255, 0.1); color: #fff; }
+.modal-confirm { background: #ff453a; color: #fff; }
+.modal-save { background: var(--accent); color: #fff; }
+
+/* Hidden-photo styling */
+.row-hidden { opacity: 0.55; }
+.hidden-tag { display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 600; color: #ff9f0a; background: rgba(255,159,10,0.15); border: 1px solid rgba(255,159,10,0.35); padding: 2px 8px; border-radius: 10px; vertical-align: middle; }
+.btn-warn { color: #ff9f0a; background: rgba(255,159,10,0.15); border-color: rgba(255,159,10,0.35); }
+.btn-warn:hover:not(:disabled) { background: rgba(255,159,10,0.3); }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Site theme controls */
+.theme-modal { max-height: 90vh; overflow-y: auto; max-width: 420px; }
+.theme-label { text-align: left; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; color: #86868b; margin: 4px 0 10px; }
+.theme-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.theme-opt { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.2); border-radius: 14px; padding: 8px 8px 10px; color: #fff; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; }
+.theme-opt:hover { border-color: rgba(255,255,255,0.45); }
+.theme-opt.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.theme-preview { height: 34px; border-radius: 8px; margin-bottom: 8px; border: 1px solid rgba(128,128,128,0.35); position: relative; overflow: hidden; }
+.theme-preview::after { content: ""; position: absolute; left: 8px; bottom: 7px; width: 40%; height: 6px; border-radius: 3px; background: var(--pv-accent, #0a84ff); }
+.accent-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-bottom: 12px; }
+.accent-dot { width: 34px; height: 34px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.25); cursor: pointer; padding: 0; transition: transform 0.2s ease, box-shadow 0.2s ease; display: block; }
+.accent-dot:hover { transform: scale(1.1); }
+.accent-dot.active { box-shadow: 0 0 0 3px #1e1e20, 0 0 0 5px #fff; }
+.accent-custom { position: relative; overflow: hidden; background: conic-gradient(#ff375f, #ff9f0a, #ffd60a, #30d158, #40c8e0, #0a84ff, #bf5af2, #ff375f); }
+.modal-content .accent-custom input { position: absolute; inset: -10px; width: 60px; height: 60px; opacity: 0; cursor: pointer; margin: 0; padding: 0; border: none; }
+#themeMsg, #passMsg, #loginMsg { min-height: 18px; font-size: 13px; color: #86868b; margin-bottom: 12px; }
+
+/* Selection checkboxes */
+.select-all {
+  display: inline-flex; align-items: center; gap: 10px;
+  margin-right: auto; cursor: pointer; user-select: none;
+  font-size: 14px; font-weight: 500; color: #ffffff;
+}
+.select-all .sel-count { color: #86868b; font-weight: 400; }
+.sel-box {
+  appearance: none; -webkit-appearance: none;
+  width: 22px; height: 22px; margin: 0; flex: 0 0 auto;
+  border-radius: 7px; cursor: pointer;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+  display: inline-grid; place-content: center;
+  transition: all 0.15s ease;
+}
+.sel-box:hover { border-color: var(--accent); }
+.sel-box:checked, .sel-box:indeterminate { background: var(--accent); border-color: var(--accent); }
+.sel-box:checked::after {
+  content: ""; width: 6px; height: 11px; margin-top: -2px;
+  border: solid #fff; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg);
+}
+.sel-box:indeterminate::after { content: ""; width: 10px; height: 2.5px; border-radius: 2px; background: #fff; }
+.sel-box:disabled { opacity: 0.3; cursor: not-allowed; }
+.thumb-wrap { position: relative; width: 50px; height: 50px; }
+.thumb-wrap .sel-box {
+  position: absolute; top: -6px; left: -6px; z-index: 2;
+  width: 20px; height: 20px; border-radius: 6px;
+  background: rgba(20, 20, 22, 0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+}
+tr.row-selected { background: rgba(var(--accent-rgb), 0.1); }
+
+/* ---------- Mobile friendly layout ---------- */
+html { -webkit-text-size-adjust: 100%; }
+body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+
+@media (max-width: 650px) {
+  header { position: static; padding: 14px 12px; }
+  .header-container { flex-direction: column; align-items: stretch; gap: 10px; }
+  h1 { font-size: 20px; text-align: center; }
+  .header-right { flex-wrap: wrap; justify-content: center; gap: 8px; }
+  .header-right .btn { flex: 1 1 calc(50% - 8px); justify-content: center; height: 42px; font-size: 13px; padding: 0 10px; }
+  .header-right .badge { order: -1; flex: 1 1 100%; text-align: center; }
+
+  main { padding: 16px 12px; }
+  #status { font-size: 13px; margin-bottom: 12px; }
+
+  .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+  .stat-card { padding: 12px 10px; border-radius: 14px; text-align: center; }
+  .stat-title { font-size: 10px; margin-bottom: 4px; letter-spacing: 0.3px; }
+  .stat-value { font-size: 20px; }
+
+  .controls-bar { margin-bottom: 12px; }
+  .controls-bar .btn { width: 100%; justify-content: center; height: 46px; }
+
+  .table-container { overflow-x: hidden; border-radius: 16px; }
+  table { min-width: 0; display: block; }
+  thead, tbody { display: block; }
+  thead tr { display: block; }
+  thead { display: none; }
+
+  tbody tr {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    grid-template-areas: "img name act" "img date act";
+    column-gap: 12px;
+    row-gap: 2px;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  tbody td { display: block; padding: 0; border: none; min-width: 0; }
+  tbody td:nth-child(1) { grid-area: img; }
+  tbody td:nth-child(2) { grid-area: name; align-self: end; word-break: break-word; font-size: 14px; }
+  tbody td:nth-child(3) { grid-area: date; align-self: start; font-size: 12px; }
+  tbody td:nth-child(4) { grid-area: act; }
+  tbody td.empty-row { grid-column: 1 / -1; grid-area: auto; }
+  .thumb-preview { width: 64px; height: 64px; }
+  .thumb-wrap { width: 64px; height: 64px; }
+  .controls-bar .select-all { width: 100%; margin-right: 0; padding: 4px 2px; }
+
+  .modal { padding: 12px; align-items: center; }
+  .modal-content { padding: 22px 16px; border-radius: 18px; }
+  .modal-content input { font-size: 16px; }
+  .theme-grid { gap: 8px; }
+  .modal-btn { padding: 14px 12px; }
+}
+
+.chart-card { background: rgba(255,255,255,0.03); backdrop-filter: blur(25px) saturate(180%); -webkit-backdrop-filter: blur(25px) saturate(180%); border: 1px solid rgba(255,255,255,0.15); border-radius: 20px; padding: 18px 20px; margin-bottom: 28px; box-shadow: inset 0 1px 1px rgba(255,255,255,0.2); }
+.chart-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.chart-legend { display: flex; gap: 14px; font-size: 12px; color: #86868b; }
+.chart-legend .lg { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+.lg-up { background: var(--accent); }
+.lg-vis { background: #30d158; }
+.chart-bars { display: flex; align-items: flex-end; gap: 6px; height: 150px; }
+.chart-col { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.chart-pair { display: flex; align-items: flex-end; justify-content: center; gap: 2px; width: 100%; }
+.bw { flex: 1; max-width: 14px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; }
+.bv { font-size: 8px; color: #86868b; height: 10px; line-height: 10px; white-space: nowrap; }
+.chart-bar { width: 100%; min-height: 2px; border-radius: 4px 4px 0 0; }
+.chart-bar.up { background: var(--accent); }
+.chart-bar.vis { background: #30d158; }
+.chart-day { font-size: 10px; color: #86868b; margin-top: 6px; white-space: nowrap; }
+.chart-note { font-size: 12px; color: #86868b; margin-top: 10px; }
+@media (max-width: 650px) { .chart-card { padding: 14px 12px; margin-bottom: 16px; } .chart-bars { gap: 3px; } .chart-day { font-size: 8px; } }
+.blocked-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.blocked-item { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 8px 12px; font-size: 13px; color: #fff; }
+.blocked-item small { display: block; color: #86868b; font-size: 11px; }
+.live-dot {
+  display: inline-block; width: 8px; height: 8px; margin-right: 6px;
+  border-radius: 50%; background: #30d158; vertical-align: middle;
+  box-shadow: 0 0 8px #30d158; animation: livePulse 1.6s ease-in-out infinite;
+}
+@keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+.stat-clickable { cursor: pointer; transition: border-color 0.2s ease, transform 0.2s ease; }
+.stat-clickable:hover { border-color: var(--accent); transform: translateY(-2px); }
+.stat-bar { height: 6px; border-radius: 4px; background: rgba(255,255,255,0.1); margin-top: 10px; overflow: hidden; }
+.stat-bar i { display: block; height: 100%; width: 0; border-radius: 4px; background: #30d158; transition: width 0.4s ease, background 0.3s ease; }
+.stat-bar i.warn { background: #ff9f0a; }
+.stat-bar i.crit { background: #ff453a; }
+.stat-sub { font-size: 11px; color: #86868b; margin-top: 6px; }
+.storage-warn { margin: 0 0 16px; padding: 12px 16px; border-radius: 14px; font-size: 14px; font-weight: 500; text-align: left; color: #ff9f0a; background: rgba(255,159,10,0.12); border: 1px solid rgba(255,159,10,0.4); }
+.storage-warn.crit { color: #ff453a; background: rgba(255,69,58,0.12); border-color: rgba(255,69,58,0.45); }
+.storage-warn[hidden] { display: none; }
+.report-tag { display: inline-block; margin-left: 8px; font-size: 11px; font-weight: 600; color: #ff453a; background: rgba(255,69,58,0.15); border: 1px solid rgba(255,69,58,0.35); padding: 2px 8px; border-radius: 10px; vertical-align: middle; }
+.stat-card.has-reports { border-color: rgba(255,69,58,0.55); }
+.stat-card.has-reports .stat-value { color: #ff453a; }
+.report-list { overflow-y: auto; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.report-item { display: grid; grid-template-columns: 64px 1fr; gap: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 10px; }
+.report-item img { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; background: rgba(255,255,255,0.06); cursor: zoom-in; }
+.report-item .r-name { font-weight: 600; font-size: 14px; color: #fff; word-break: break-word; }
+.report-item .r-meta { font-size: 12px; color: #86868b; margin-top: 2px; }
+.report-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.online-modal { max-width: 440px; max-height: 85vh; display: flex; flex-direction: column; }
+.online-list { overflow-y: auto; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.online-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 14px; padding: 12px 14px; }
+.online-item .o-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.online-item .o-device { font-weight: 600; font-size: 15px; color: #fff; word-break: break-word; }
+.online-item .o-type { font-size: 11px; font-weight: 600; color: var(--accent); background: rgba(var(--accent-rgb), 0.15); border: 1px solid rgba(var(--accent-rgb), 0.3); padding: 2px 8px; border-radius: 10px; flex: 0 0 auto; }
+.online-item .o-meta { margin-top: 6px; font-size: 12px; color: #86868b; line-height: 1.6; }
+.thumb-preview, .today-item img { cursor: zoom-in; }
+.preview-modal { background: rgba(0, 0, 0, 0.92); padding: 16px; }
+.preview-box { position: relative; max-width: 100%; max-height: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.preview-box img { max-width: 94vw; max-height: 80vh; object-fit: contain; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); background: rgba(255,255,255,0.05); min-width: 120px; min-height: 120px; }
+.preview-box img.loading { opacity: 0.5; filter: blur(3px); }
+.preview-cap { color: #fff; font-size: 14px; font-weight: 500; text-align: center; max-width: 90vw; word-break: break-word; }
+.preview-cap small { display: block; color: #86868b; font-weight: 400; font-size: 12px; margin-top: 2px; }
+.preview-close { position: absolute; top: 14px; right: 14px; width: 42px; height: 42px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.12); color: #fff; font-size: 26px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 2; }
+.preview-close:hover { background: rgba(255,255,255,0.25); }
+.today-grid { overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 10px; text-align: left; }
+.today-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; overflow: hidden; }
+.today-item img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: rgba(255,255,255,0.06); }
+.today-item .t-info { padding: 6px 8px; font-size: 11px; color: #86868b; word-break: break-word; }
+.today-item .t-info b { display: block; color: #fff; font-weight: 500; font-size: 12px; }
+.vtabs { display: flex; gap: 6px; margin-bottom: 12px; }
+.vtab { flex: 1; height: 34px; border-radius: 17px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.06); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.vtab.active { background: rgba(var(--accent-rgb), 0.2); border-color: rgba(var(--accent-rgb), 0.5); color: var(--accent); }
+.online-item .o-seen { margin-top: 6px; font-size: 12px; color: #c7c7cc; line-height: 1.6; }
+.online-empty { text-align: center; color: #86868b; padding: 24px 0; font-size: 14px; }
+
+#websiteCloseBtn.btn-danger {
+  background: rgba(255, 69, 58, 0.18);
+  border-color: rgba(255, 69, 58, 0.55);
+  color: #ff453a;
+}
+#websiteCloseBtn:not(.btn-danger) {
+  border-color: rgba(255, 69, 58, 0.45);
+  color: #ff453a;
+}
+#websiteCloseBtn {
+  box-shadow: 0 0 14px rgba(255,69,58,.18);
+}
+
+.badge { cursor: pointer; }
+.badge.bad { background: rgba(255,69,58,0.2); color: #ff453a; border-color: rgba(255,69,58,0.4); }
+.theme-grid { grid-template-columns: repeat(3, 1fr); }
+.thumb-preview { background: rgba(255,255,255,0.06); }
+
+/* Round delete button next to Hide/Show */
+.row-actions { display: flex; align-items: center; gap: 8px; }
+.thumb-del {
+  flex: 0 0 auto;
+  width: 32px; height: 32px; padding: 0;
+  border-radius: 50%;
+  border: 1px solid #ff453a;
+  background: rgba(20,20,22,0.92); color: #ff453a;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.thumb-del svg { width: 16px; height: 16px; display: block; pointer-events: none; }
+.thumb-del:hover { transform: scale(1.15); background: rgba(255,69,58,0.25); }
+.thumb-del:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Show/hide password button */
+.pw-wrap { position: relative; margin: 8px 0 16px; }
+.pw-wrap input { margin: 0; padding-right: 46px; }
+.pw-eye {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 34px; height: 34px; padding: 0; border: none; border-radius: 8px;
+  background: none; color: #86868b; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+.pw-eye:hover { color: #fff; }
+.pw-eye svg { width: 20px; height: 20px; pointer-events: none; }
+
+/* Settings gear + toggle switches */
+.gear-btn {
+  width: 36px; height: 36px; padding: 0; flex: 0 0 auto;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.25s ease;
+}
+.gear-btn svg { width: 19px; height: 19px; transition: transform 0.5s ease; }
+.gear-btn:hover { background: rgba(255,255,255,0.18); border-color: var(--accent); }
+.gear-btn:hover svg { transform: rotate(60deg); }
+@media (max-width: 650px) { .gear-btn { width: 42px; height: 42px; } }
+
+.set-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; text-align: left; padding: 14px 0; border-top: 1px solid rgba(255,255,255,0.1); }
+.set-row:first-of-type { border-top: none; }
+.set-title { font-size: 15px; font-weight: 600; color: #fff; }
+.set-desc { font-size: 12px; color: #86868b; margin-top: 3px; }
+.modal-content .q-slider { width: 100%; margin: 8px 0 0; padding: 0; border: none; background: transparent; accent-color: var(--accent); cursor: pointer; }
+.q-labels { display: flex; justify-content: space-between; font-size: 12px; color: #86868b; }
+.q-labels span:nth-child(2) { text-align: center; }
+.switch { position: relative; width: 50px; height: 30px; flex: 0 0 auto; display: inline-block; }
+.modal-content .switch input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; padding: 0; }
+.slider { position: absolute; inset: 0; border-radius: 30px; background: rgba(255,255,255,0.18); cursor: pointer; transition: background 0.2s ease; }
+.slider::before { content: ""; position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform 0.2s ease; box-shadow: 0 2px 5px rgba(0,0,0,0.4); }
+.switch input:checked + .slider { background: var(--accent); }
+.switch input:checked + .slider::before { transform: translateX(20px); }
+.switch input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+#settingsMsg { min-height: 18px; font-size: 13px; color: #86868b; margin: 8px 0 12px; }
+
+/* Close-website mode picker */
+.mode-stack { display: flex; flex-direction: column; gap: 10px; margin: 16px 0 12px; }
+.mode-stack .modal-btn { padding: 15px 12px; font-size: 15px; }
+.mode-pause { background: rgba(255,159,10,0.18); color: #ff9f0a; border: 1px solid rgba(255,159,10,0.45); }
+.mode-flash { background: #ffffff; color: #000000; }
+#websiteCloseBtn.mode-active { background: rgba(48,209,88,0.18); border-color: rgba(48,209,88,0.55); color: #30d158; box-shadow: 0 0 14px rgba(48,209,88,.18); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-container">
+    <h1><a href="https://photosbase.vercel.app/" class="title-link" title="Go to the main website">Photos Base Dashboard</a></h1>
+    <div class="header-right">
+      <button class="btn btn-sm btn-warn" id="migrateBtn" style="display:none;">Move photos to Storage</button>
+      <button class="btn btn-sm" id="uploadToggleBtn">Pause Uploads</button>
+      <button class="btn btn-sm" id="websiteCloseBtn">Close Website</button>
+      <button class="btn btn-sm" id="appearanceBtn">Site Theme</button>
+      <button class="btn btn-sm" id="changePasswordBtn">Change Password</button>
+      <button class="btn btn-sm btn-danger" id="logoutBtn" style="display:none;">Log Out</button>
+      <span class="badge" id="connBadge" title="Tap to re-check the website connection">Checking…</span>
+      <button type="button" class="gear-btn" id="settingsBtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div id="status">Syncing with database...</div>
+  <div id="storageWarn" class="storage-warn" hidden></div>
+
+  <!-- Analytics Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-title">Total Photos</div>
+      <div class="stat-value" id="statTotalPhotos">0</div>
+    </div>
+    <div class="stat-card stat-clickable" id="todayCard" title="Tap to see today's photos">
+      <div class="stat-title">Added Today ›</div>
+      <div class="stat-value" id="statTodayPhotos">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-title">Est. Storage Used</div>
+      <div class="stat-value" id="statStorageSize">0 MB</div>
+      <div class="stat-bar"><i id="statStorageBar"></i></div>
+      <div class="stat-sub" id="statStorageSub"></div>
+    </div>
+    <div class="stat-card stat-clickable" id="onlineCard" title="Tap to see who's online">
+      <div class="stat-title"><span class="live-dot"></span>People Online ›</div>
+      <div class="stat-value" id="statOnline">0</div>
+    </div>
+    <div class="stat-card stat-clickable" id="reportsCard" title="Reported photos">
+      <div class="stat-title">&#9873; Reported &rsaquo;</div>
+      <div class="stat-value" id="statReports">0</div>
+    </div>
+  </div>
+
+  <!-- Activity chart -->
+  <div class="chart-card">
+    <div class="chart-head">
+      <div class="stat-title" style="margin:0;">Activity · last 14 days</div>
+      <div class="chart-legend"><span><i class="lg lg-up"></i>Uploads</span><span><i class="lg lg-vis"></i>Visitors</span></div>
+    </div>
+    <div class="chart-bars" id="chartBars"></div>
+    <div class="chart-note" id="chartNote"></div>
+  </div>
+
+  <!-- Table Action Controls -->
+  <div class="controls-bar">
+    <label class="select-all">
+      <input type="checkbox" class="sel-box" id="selectAllBox" disabled>
+      <span>Select all <span class="sel-count" id="selCount"></span></span>
+    </label>
+    <button class="btn btn-sm btn-accent" id="dashUploadBtn" type="button" title="Upload photos">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M6 10l6-6 6 6"/><path d="M4 20h16"/></svg>
+    <span id="dashUploadLabel">Upload</span>
+    </button>
+    <input type="file" id="dashUploadInput" accept="image/*" multiple hidden>
+    <button id="toggleAllBtn" class="btn btn-warn" disabled>
+      Hide All
+    </button>
+    <button id="deleteAllBtn" class="btn btn-danger" disabled>
+      Delete All
+    </button>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th style="width: 70px;">Preview</th>
+          <th>File Name</th>
+          <th>Date Uploaded</th>
+          <th style="width: 110px;">Visibility</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        <!-- Rows rendered via JS -->
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Dashboard Login Modal -->
+<div id="loginModal" class="modal">
+  <div class="modal-content" style="max-width: 340px;">
+    <h3>Admin Login</h3>
+    <p style="color:#86868b; font-size:14px; margin-bottom:12px;">Enter your dashboard password to proceed.</p>
+    <div class="pw-wrap">
+      <input type="password" id="loginPassInput" placeholder="Password" autocomplete="current-password">
+      <button type="button" class="pw-eye" id="loginEyeBtn" title="Show password" aria-label="Show password">
+        <svg id="loginEyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+    <div id="loginMsg"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-save" id="confirmLoginBtn" type="button">Log In</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change Dashboard & Delete Passwords Modal -->
+<div id="changePasswordModal" class="modal">
+  <div class="modal-content">
+    <h3>Change Passwords</h3>
+    <p style="color:#86868b; font-size:14px; margin-bottom:8px;">Update your credentials securely.</p>
+    <label style="display:block; text-align:left; font-size:12px; color:#86868b; margin-top:8px;">Dashboard Login Password</label>
+    <input type="text" id="newDashPassInput" placeholder="New Dashboard Password" autocomplete="off">
+    <label style="display:block; text-align:left; font-size:12px; color:#86868b; margin-top:4px;">Website Delete Password</label>
+    <input type="text" id="newPassInput" placeholder="New Delete Password" autocomplete="off">
+    <div id="passMsg"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" id="cancelChangePassBtn" type="button">Cancel</button>
+      <button class="modal-btn modal-save" id="confirmChangePassBtn" type="button">Update Passwords</button>
+    </div>
+  </div>
+</div>
+
+<!-- Close Website Mode Modal -->
+<div id="closeModeModal" class="modal">
+  <div class="modal-content">
+    <h3>Close Website</h3>
+    <p style="color:#86868b; font-size:14px; margin-bottom:0;">Choose what visitors will see.</p>
+    <div class="mode-stack">
+      <button class="modal-btn mode-pause" id="modePauseBtn" type="button">⏸ Pause</button>
+      <button class="modal-btn mode-flash" id="modeFlashBtn" type="button">⚡ Flashbang</button>
+      <button class="modal-btn modal-cancel" id="modeCancelBtn" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload Mode Modal -->
+<div id="uploadModeModal" class="modal">
+  <div class="modal-content">
+    <h3>Uploads</h3>
+    <p style="color:#86868b; font-size:14px; margin-bottom:0;">Choose what visitors will see.</p>
+    <div class="mode-stack">
+      <button class="modal-btn mode-flash" id="modeRemoveUploadBtn" type="button">🚫 Remove Upload Button</button>
+      <button class="modal-btn mode-pause" id="modePauseUploadBtn" type="button">⏸ Pause Uploads</button>
+      <button class="modal-btn modal-cancel" id="modeUploadCancelBtn" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Added Today Modal -->
+<div id="todayModal" class="modal">
+  <div class="modal-content online-modal" style="max-width: 520px;">
+    <h3>Added Today</h3>
+    <p style="color:#86868b; font-size:14px; margin-bottom:12px;" id="todaySummary"></p>
+    <div id="todayGrid" class="today-grid"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-btn modal-save" id="closeTodayBtn" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- People Online Modal -->
+<div id="onlineModal" class="modal">
+  <div class="modal-content online-modal">
+    <h3>People Online</h3>
+    <div class="vtabs">
+      <button type="button" class="vtab active" data-tab="online">Online now</button>
+      <button type="button" class="vtab" data-tab="today">Today</button>
+      <button type="button" class="vtab" data-tab="week">This week</button>
+    </div>
+    <p style="color:#86868b; font-size:14px; margin-bottom:12px;" id="onlineSummary">Live visitors on the website.</p>
+    <div id="onlineList" class="online-list"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-btn modal-save" id="closeOnlineBtn" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reported Photos Modal -->
+<div id="reportsModal" class="modal">
+  <div class="modal-content online-modal" style="max-width: 520px;">
+    <h3>Reported Photos</h3>
+    <p style="color:#86868b; font-size:14px; margin-bottom:12px;" id="reportsSummary"></p>
+    <div id="reportList" class="report-list"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="modal-btn modal-save" id="closeReportsBtn" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div id="settingsModal" class="modal">
+  <div class="modal-content theme-modal">
+    <h3>Settings</h3>
+    <p style="color:#86868b; font-size:14px; margin-bottom:12px;">Changes apply to the main website for everyone.</p>
+    <div class="set-row">
+      <div class="set-text">
+        <div class="set-title">Delete option</div>
+        <div class="set-desc">Turn photo deleting on or off on the website.</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="deleteEnabledToggle"><span class="slider"></span></label>
+    </div>
+    <div class="set-row">
+      <div class="set-text">
+        <div class="set-title">Anyone can delete any photo</div>
+        <div class="set-desc">Off: people can only delete their own uploads.</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="anyoneDeleteToggle"><span class="slider"></span></label>
+    </div>
+    <div class="set-row">
+      <div class="set-text">
+        <div class="set-title">Delete password</div>
+        <div class="set-desc">On: a password is required to delete. Off: no password asked.</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="deletePasswordToggle"><span class="slider"></span></label>
+    </div>
+    <div class="set-row">
+      <div class="set-text">
+        <div class="set-title">Disable downloads</div>
+        <div class="set-desc">Blocks right-click, long-press save, drag, Ctrl+S and printing on the website.</div>
+      </div>
+      <label class="switch"><input type="checkbox" id="downloadProtectToggle"><span class="slider"></span></label>
+    </div>
+    <div class="set-row">
+      <div class="set-text">
+        <div class="set-title">Daily upload limit</div>
+        <div class="set-desc">Photos per person per day. 0 = unlimited.</div>
+      </div>
+      <input type="number" id="dailyLimitInput" min="0" step="1" value="0" style="width:80px; margin:0; text-align:center;">
+    </div>
+    <div class="set-row">
+      <div class="set-text">
+        <div class="set-title">Storage limit (MB)</div>
+        <div class="set-desc">Used for the storage meter and the 80% warning. Supabase free plan = 1024.</div>
+      </div>
+      <input type="number" id="storageLimitInput" min="1" step="1" value="1024" style="width:90px; margin:0; text-align:center;">
+    </div>
+    <div class="set-row" style="flex-direction:column; align-items:stretch; gap:6px;">
+      <div class="set-text">
+        <div class="set-title">Upload quality</div>
+        <div class="set-desc" id="uploadQualityDesc"></div>
+      </div>
+      <input type="range" id="uploadQualitySlider" class="q-slider" min="1" max="3" step="1" value="2" aria-label="Upload quality">
+      <div class="q-labels"><span>Fast</span><span>Balanced</span><span>High</span></div>
+    </div>
+    <div id="settingsMsg"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-save" id="closeSettingsBtn" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Site Theme Modal -->
+<div id="appearanceModal" class="modal">
+  <div class="modal-content theme-modal">
+    <h3>Website Theme</h3>
+    <p style="color:#86868b; font-size:14px; margin-bottom:12px;">Changes apply to the main website for everyone.</p>
+    <div class="theme-label">Theme</div>
+    <div id="themeGrid" class="theme-grid"></div>
+    <div class="theme-label">Accent</div>
+    <div id="accentRow" class="accent-row"></div>
+    <div id="themeMsg"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" id="resetThemeBtn" type="button">Reset</button>
+      <button class="modal-btn modal-save" id="closeAppearanceBtn" type="button">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- Photo Preview (always on top) -->
+<div id="previewModal" class="modal preview-modal" style="z-index: 200;">
+  <button type="button" class="preview-close" id="previewCloseBtn" aria-label="Close preview">&times;</button>
+  <div class="preview-box">
+    <img id="previewImg" alt="">
+    <div class="preview-cap" id="previewCap"></div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://wykfkkleyhrdeimkirxv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_h-O7O9zu3i9PyXY99g1H5g_9gDIKTA2';
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const statusEl = document.getElementById('status');
+const tableBody = document.getElementById('tableBody');
+const toggleAllBtn = document.getElementById('toggleAllBtn');
+const deleteAllBtn = document.getElementById('deleteAllBtn');
+
+let currentPhotos = [];
+const selected = new Set();
+const selectAllBox = document.getElementById('selectAllBox');
+const selCountEl = document.getElementById('selCount');
+
+const PAGE = 40;
+let shown = PAGE;
+let loading = false, lastSig = '', warnedSlow = false;
+const thumbCache = new Map();
+const byId = new Map();
+const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+
+/* --- Authentication Handling --- */
+const loginModal = document.getElementById('loginModal');
+const loginPassInput = document.getElementById('loginPassInput');
+const loginMsgEl = document.getElementById('loginMsg');
+const logoutBtn = document.getElementById('logoutBtn');
+
+async function getStoredDashboardPassword() {
+  const { data } = await supabaseClient.from('site_appearance').select('value').eq('key', 'dashboard_password').maybeSingle();
+  return data && data.value ? String(data.value) : 'admin123'; // Default fallback password if none set
+}
+
+async function verifyAuth(forcePrompt = false) {
+  const token = localStorage.getItem('photobase_dash_auth');
+  const currentPass = await getStoredDashboardPassword();
+  
+  if (!forcePrompt && token === currentPass) {
+    loginModal.classList.remove('open');
+    logoutBtn.style.display = 'inline-flex';
+    initDashboard();
+    return;
+  }
+  
+  loginModal.classList.add('open');
+  loginPassInput.value = '';
+  loginPassInput.focus();
+}
+
+document.getElementById('confirmLoginBtn').addEventListener('click', async () => {
+  const val = loginPassInput.value.trim();
+  const currentPass = await getStoredDashboardPassword();
+  if (val === currentPass) {
+    localStorage.setItem('photobase_dash_auth', currentPass);
+    loginModal.classList.remove('open');
+    loginMsgEl.textContent = '';
+    logoutBtn.style.display = 'inline-flex';
+    initDashboard();
+  } else {
+    loginMsgEl.textContent = 'Incorrect password.';
+    loginPassInput.focus();
+  }
+});
+
+const EYE_ON = '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>';
+const EYE_OFF = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><path d="M1 1l22 22"/>';
+document.getElementById('loginEyeBtn').addEventListener('click', () => {
+  const show = loginPassInput.type === 'password';
+  loginPassInput.type = show ? 'text' : 'password';
+  document.getElementById('loginEyeIcon').innerHTML = show ? EYE_OFF : EYE_ON;
+  const label = show ? 'Hide password' : 'Show password';
+  const btn = document.getElementById('loginEyeBtn');
+  btn.title = label;
+  btn.setAttribute('aria-label', label);
+  loginPassInput.focus();
+});
+
+loginPassInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('confirmLoginBtn').click();
+});
+
+logoutBtn.addEventListener('click', () => {
+  localStorage.removeItem('photobase_dash_auth');
+  window.location.reload();
+});
+
+// Light query: no image data. Uses the photos_admin view (has file size); falls back to photos without size.
+async function fetchMeta() {
+  const order = { ascending: false };
+  // Preferred: admin view (has file size + Storage paths)
+  let r = await supabaseClient.from('photos_admin').select('id,name,created_at,hidden,size,path,thumb_path').order('created_at', order);
+  if (r.error) {
+    r = await supabaseClient.from('photos').select('id,name,created_at,hidden,path,thumb_path').order('created_at', order);
+    if (!r.error && !warnedSlow) { warnedSlow = true; console.info('Run storage_setup.sql to refresh the photos_admin view.'); }
+  }
+  if (r.error) {
+    // Storage columns do not exist yet: the setup SQL has not been run
+    r = await supabaseClient.from('photos').select('id,name,created_at,hidden').order('created_at', order);
+    storageReady = false;
+  } else {
+    storageReady = true;
+  }
+  return r;
+}
+
+function sigOf(rows) { return rows.map(p => p.id + (p.hidden ? 'h' : 'v') + (p.path ? 's' : 'l') + (p.name || '')).join('|'); }
+
+async function loadDashboard(force) {
+  if (document.hidden && !force) return;
+  if (loading && !force) return;
+  loading = true;
+  const { data, error } = await fetchMeta();
+  loading = false;
+
+  if (error) {
+    statusEl.textContent = 'Failed to load records: ' + error.message;
+    return;
+  }
+  statusEl.textContent = `Dashboard updated: ${new Date().toLocaleTimeString()}` + (storageReady ? '' : ' · run storage_setup.sql in Supabase to enable Storage');
+
+  const rows = data || [];
+  // Attach the uploader id (light query, no image data) so photos can be traced to a device
+  try {
+    const o = await supabaseClient.from('photos').select('id,owner_id');
+    if (!o.error && o.data) {
+      const om = new Map(o.data.map(r => [String(r.id), r.owner_id]));
+      rows.forEach(p => { p.owner_id = om.get(String(p.id)) || null; });
+    }
+  } catch (e) {}
+  const liveIds = new Set(rows.map(p => String(p.id)));
+  selected.forEach(id => { if (!liveIds.has(id)) selected.delete(id); });
+  const sig = sigOf(rows);
+  if (sig === lastSig) return;
+  lastSig = sig;
+
+  currentPhotos = rows;
+  byId.clear();
+  rows.forEach(p => byId.set(String(p.id), p));
+  calculateStats();
+  renderTable();
+  renderActivityChart();
+  updateMigrateButton();
+}
+
+function calculateStats() {
+  document.getElementById('statTotalPhotos').textContent = currentPhotos.length;
+
+  const today = new Date().toDateString();
+  document.getElementById('statTodayPhotos').textContent =
+    currentPhotos.filter(p => new Date(p.created_at).toDateString() === today).length;
+
+  const hasSize = currentPhotos.length === 0 || currentPhotos[0].size !== undefined;
+  const bytes = currentPhotos.reduce((n, p) => n + (p.size || 0), 0);
+  document.getElementById('statStorageSize').textContent = hasSize ? (bytes / (1024 * 1024)).toFixed(2) + ' MB' : '—';
+  updateStorageMeter(hasSize ? bytes : null);
+}
+
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+const thumbQueue = [];
+let thumbBusy = 0;
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    io.unobserve(e.target);
+    const id = e.target.dataset.id;
+    if (thumbCache.has(id)) { e.target.src = thumbCache.get(id); return; }
+    thumbQueue.push(e.target);
+    pumpThumbs();
+  });
+}, { rootMargin: '300px' });
+
+function pumpThumbs() {
+  while (thumbBusy < 3 && thumbQueue.length) {
+    const img = thumbQueue.shift();
+    if (!img.isConnected) continue;
+    thumbBusy++;
+    loadThumb(img).catch(() => {}).finally(() => { thumbBusy--; pumpThumbs(); });
+  }
+}
+
+async function loadThumb(img) {
+  const id = img.dataset.id;
+  if (thumbCache.has(id)) { img.src = thumbCache.get(id); return; }
+  const p = byId.get(id);
+  if (!p) return;
+  const { data } = await supabaseClient.from('photos').select('data').eq('id', p.id).maybeSingle();
+  if (!data || !data.data) return;
+  const url = await makeThumb(data.data);
+  thumbCache.set(id, url);
+  if (img.isConnected) img.src = url;
+}
+
+function makeThumb(src) {
+  return new Promise(resolve => {
+    const im = new Image();
+    im.onload = () => {
+      const r = Math.min(1, 128 / Math.max(im.width, im.height));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(im.width * r));
+      c.height = Math.max(1, Math.round(im.height * r));
+      c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      resolve(c.toDataURL('image/jpeg', 0.6));
+    };
+    im.onerror = () => resolve(src);
+    im.src = src;
+  });
+}
+
+function renderTable() {
+  if (currentPhotos.length === 0) {
+    tableBody.innerHTML = `<tr><td class="empty-row" colspan="4" style="text-align:center; color:#86868b; padding: 40px;">No photos found.</td></tr>`;
+    updateBulkButtons();
+    return;
+  }
+
+  const visible = currentPhotos.slice(0, shown);
+  let html = '';
+  for (const photo of visible) {
+    const id = escapeHtml(photo.id);
+    const cached = storageThumb(photo) || thumbCache.get(String(photo.id));
+    const isSel = selected.has(String(photo.id));
+    html += `<tr class="${photo.hidden ? 'row-hidden' : ''}${isSel ? ' row-selected' : ''}">
+      <td><div class="thumb-wrap"><input type="checkbox" class="sel-box row-sel" data-id="${id}" aria-label="Select photo" ${isSel ? 'checked' : ''}><img src="${cached || BLANK}" data-id="${id}" class="thumb-preview" alt="" loading="lazy" ${cached ? '' : 'data-lazy="1"'}></div></td>
+      <td style="font-weight: 500;">${escapeHtml(photo.name || 'Untitled Photo')}${photo.hidden ? '<span class="hidden-tag">Hidden</span>' : ''}${reportMap.has(String(photo.id)) ? '<span class="report-tag">&#9873; ' + reportMap.get(String(photo.id)).count + '</span>' : ''}</td>
+      <td style="color:#86868b;">${new Date(photo.created_at).toLocaleString()}</td>
+      <td><div class="row-actions"><button type="button" class="btn btn-sm toggle-hide-btn ${photo.hidden ? '' : 'btn-warn'}" data-id="${id}">${photo.hidden ? 'Show' : 'Hide'}</button><button type="button" class="thumb-del" data-id="${id}" title="Delete this photo" aria-label="Delete photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button></div></td>
+    </tr>`;
+  }
+  if (currentPhotos.length > shown) {
+    html += `<tr><td class="empty-row" colspan="4" style="text-align:center; padding: 16px;"><button type="button" class="btn btn-sm" id="moreBtn">Show more (${currentPhotos.length - shown} left)</button></td></tr>`;
+  }
+  tableBody.innerHTML = html;
+  tableBody.querySelectorAll('img[data-lazy]').forEach(img => io.observe(img));
+  updateBulkButtons();
+}
+
+tableBody.addEventListener('change', e => {
+  const cb = e.target.closest('.row-sel');
+  if (!cb) return;
+  if (cb.checked) selected.add(cb.dataset.id); else selected.delete(cb.dataset.id);
+  cb.closest('tr').classList.toggle('row-selected', cb.checked);
+  updateBulkButtons();
+});
+
+selectAllBox.addEventListener('change', () => {
+  if (selectAllBox.checked) currentPhotos.forEach(p => selected.add(String(p.id)));
+  else selected.clear();
+  tableBody.querySelectorAll('.row-sel').forEach(cb => {
+    cb.checked = selected.has(cb.dataset.id);
+    cb.closest('tr').classList.toggle('row-selected', cb.checked);
+  });
+  updateBulkButtons();
+});
+
+function targetPhotos() {
+  return selected.size ? currentPhotos.filter(p => selected.has(String(p.id))) : currentPhotos;
+}
+
+tableBody.addEventListener('click', e => {
+  const t = e.target;
+  if (t.id === 'moreBtn') { shown += PAGE; renderTable(); return; }
+  if (t.classList && t.classList.contains('thumb-preview')) { openPreview(t.dataset.id); return; }
+  const del = t.closest('.thumb-del');
+  if (del) { deleteOnePhoto(del); return; }
+  const btn = t.closest('.toggle-hide-btn');
+  if (btn) {
+    const p = byId.get(btn.dataset.id);
+    if (!p) return;
+    btn.disabled = true;
+    setPhotosHidden([p.id], !p.hidden);
+  }
+});
+
+function updateBulkButtons() {
+  const has = currentPhotos.length > 0;
+  const n = selected.size;
+  const targets = targetPhotos();
+  const anyVisible = targets.some(p => !p.hidden);
+  toggleAllBtn.disabled = !has;
+  deleteAllBtn.disabled = !has;
+  toggleAllBtn.textContent = (anyVisible ? 'Hide ' : 'Show ') + (n ? 'Selected' : 'All');
+  toggleAllBtn.classList.toggle('btn-warn', anyVisible);
+  deleteAllBtn.textContent = n ? `Delete Selected (${n})` : 'Delete All';
+
+  selectAllBox.disabled = !has;
+  selectAllBox.checked = has && n === currentPhotos.length;
+  selectAllBox.indeterminate = n > 0 && n < currentPhotos.length;
+  selCountEl.textContent = n ? `(${n} of ${currentPhotos.length})` : '';
+}
+
+async function setPhotosHidden(ids, hidden) {
+  if (!ids.length) return;
+  statusEl.textContent = hidden ? 'Hiding photos...' : 'Showing photos...';
+  const { data, error } = await supabaseClient
+    .from('photos').update({ hidden: hidden }).in('id', ids).select('id');
+  if (error) {
+    alert('Could not update photos: ' + error.message);
+  } else if (!data || data.length === 0) {
+    alert('Update was blocked by the database.');
+  } else {
+    statusEl.textContent = (hidden ? 'Hidden on the website: ' : 'Visible on the website: ') + data.length;
+  }
+  await loadDashboard(true);
+}
+
+toggleAllBtn.addEventListener('click', async () => {
+  if (!currentPhotos.length) return;
+  const targets = targetPhotos();
+  const hide = targets.some(p => !p.hidden);
+  toggleAllBtn.disabled = true;
+  await setPhotosHidden(targets.map(p => p.id), hide);
+});
+
+async function deleteOnePhoto(btn) {
+  const p = byId.get(btn.dataset.id);
+  if (!p) return;
+  if (!confirm('Delete this photo?')) return;
+  btn.disabled = true;
+  statusEl.textContent = 'Deleting photo...';
+  const { data, error } = await supabaseClient.from('photos').delete().eq('id', p.id).select('id,path,thumb_path');
+  if (!error && data && data.length) await removeStorageFiles(data);
+  if (error) {
+    alert('Delete error: ' + error.message);
+    btn.disabled = false;
+  } else if (!data || data.length === 0) {
+    alert('Delete was blocked by the database.');
+    btn.disabled = false;
+  } else {
+    statusEl.textContent = 'Photo deleted.';
+  }
+  await loadDashboard(true);
+}
+
+deleteAllBtn.addEventListener('click', async () => {
+  const ids = targetPhotos().map(p => p.id);
+  if (ids.length === 0) return;
+  const label = selected.size ? '' : 'ALL ';
+  if (!confirm('Delete ' + label + ids.length + (ids.length === 1 ? ' photo' : ' photos') + '? This cannot be undone.')) return;
+
+  deleteAllBtn.disabled = true;
+  statusEl.textContent = 'Deleting all photos...';
+  const { data, error } = await supabaseClient.from('photos').delete().in('id', ids).select('id,path,thumb_path');
+  if (!error && data && data.length) await removeStorageFiles(data);
+
+  if (error) {
+    alert('Delete error: ' + error.message);
+  } else if (!data || data.length === 0) {
+    alert('Delete was blocked by the database.');
+  } else {
+    statusEl.textContent = 'Deleted ' + data.length + ' photos.';
+    data.forEach(r => selected.delete(String(r.id)));
+  }
+  await loadDashboard(true);
+  updateBulkButtons();
+});
+
+/* Upload control: popup with "Remove Upload Button" / "Pause Uploads" */
+const uploadToggleBtn = document.getElementById('uploadToggleBtn');
+const uploadModeModal = document.getElementById('uploadModeModal');
+let uploadMode = 'none'; // 'none' | 'pause' | 'remove'
+let uploadBusy = false;
+
+function renderUploadButton() {
+  const m = uploadMode;
+  uploadToggleBtn.textContent = m === 'pause' ? 'Resume Uploads' : m === 'remove' ? 'Restore Upload Button' : 'Pause Uploads';
+  uploadToggleBtn.classList.toggle('btn-danger', m !== 'none');
+}
+
+async function loadUploadState() {
+  if (uploadBusy) return;
+  const { data, error } = await supabaseClient
+    .from('site_appearance').select('key,value').in('key', ['uploads_paused', 'upload_button_removed']);
+  if (error) return;
+  const map = {};
+  (data || []).forEach(r => { map[r.key] = String(r.value); });
+  uploadMode = map.upload_button_removed === 'true' ? 'remove' : map.uploads_paused === 'true' ? 'pause' : 'none';
+  renderUploadButton();
+}
+
+async function setUploadMode(mode) {
+  if (uploadBusy) return;
+  uploadBusy = true;
+  uploadToggleBtn.disabled = true;
+  const { data, error } = await supabaseClient
+    .from('site_appearance')
+    .upsert([
+      { key: 'uploads_paused',        value: mode === 'pause'  ? 'true' : 'false' },
+      { key: 'upload_button_removed', value: mode === 'remove' ? 'true' : 'false' }
+    ], { onConflict: 'key' })
+    .select('key');
+  uploadToggleBtn.disabled = false;
+  uploadBusy = false;
+  if (error) {
+    alert('Could not change setting: ' + error.message);
+  } else if (!data || data.length === 0) {
+    alert('Blocked by the database.');
+  } else {
+    uploadMode = mode;
+    statusEl.textContent = mode === 'pause' ? 'Uploads paused on the website.'
+      : mode === 'remove' ? 'Upload button removed from the website.'
+      : 'Uploads restored on the website.';
+  }
+  renderUploadButton();
+}
+
+uploadToggleBtn.addEventListener('click', () => {
+  if (uploadBusy) return;
+  if (uploadMode === 'none') uploadModeModal.classList.add('open');
+  else setUploadMode('none');
+});
+document.getElementById('modeRemoveUploadBtn').addEventListener('click', () => { uploadModeModal.classList.remove('open'); setUploadMode('remove'); });
+document.getElementById('modePauseUploadBtn').addEventListener('click', () => { uploadModeModal.classList.remove('open'); setUploadMode('pause'); });
+document.getElementById('modeUploadCancelBtn').addEventListener('click', () => uploadModeModal.classList.remove('open'));
+uploadModeModal.addEventListener('click', e => { if (e.target === uploadModeModal) uploadModeModal.classList.remove('open'); });
+
+const websiteCloseBtn = document.getElementById('websiteCloseBtn');
+const closeModeModal = document.getElementById('closeModeModal');
+let websiteMode = 'none';
+let websiteCloseBusy = false;
+
+function renderWebsiteCloseButton() {
+  const m = websiteMode;
+  websiteCloseBtn.textContent = m === 'pause' ? 'Resume Website' : m === 'flashbang' ? 'Stop Flashbang' : 'Close Website';
+  websiteCloseBtn.classList.toggle('btn-danger', m === 'none');
+  websiteCloseBtn.classList.toggle('mode-active', m !== 'none');
+}
+
+async function loadWebsiteClosedState() {
+  if (websiteCloseBusy) return;
+  const { data, error } = await supabaseClient
+    .from('site_appearance').select('key,value').in('key', ['website_closed', 'website_flashbang']);
+  if (!error && data) {
+    const map = {};
+    data.forEach(r => { map[r.key] = String(r.value); });
+    websiteMode = map.website_flashbang === 'true' ? 'flashbang' : map.website_closed === 'true' ? 'pause' : 'none';
+  }
+  renderWebsiteCloseButton();
+}
+
+async function setWebsiteMode(mode) {
+  if (websiteCloseBusy) return;
+  websiteCloseBusy = true;
+  websiteCloseBtn.disabled = true;
+
+  const { data, error } = await supabaseClient
+    .from('site_appearance')
+    .upsert([
+      { key: 'website_closed',    value: mode === 'pause'     ? 'true' : 'false' },
+      { key: 'website_flashbang', value: mode === 'flashbang' ? 'true' : 'false' }
+    ], { onConflict: 'key' })
+    .select('key');
+
+  websiteCloseBtn.disabled = false;
+  websiteCloseBusy = false;
+
+  if (error) {
+    renderWebsiteCloseButton();
+    alert('Could not change website status: ' + error.message);
+    return;
+  }
+  if (!data || data.length === 0) {
+    renderWebsiteCloseButton();
+    alert('Blocked by the database.');
+    return;
+  }
+
+  websiteMode = mode;
+  renderWebsiteCloseButton();
+}
+
+websiteCloseBtn.addEventListener('click', () => {
+  if (websiteCloseBusy) return;
+  if (websiteMode === 'none') closeModeModal.classList.add('open');
+  else setWebsiteMode('none');
+});
+document.getElementById('modePauseBtn').addEventListener('click', () => { closeModeModal.classList.remove('open'); setWebsiteMode('pause'); });
+document.getElementById('modeFlashBtn').addEventListener('click', () => { closeModeModal.classList.remove('open'); setWebsiteMode('flashbang'); });
+document.getElementById('modeCancelBtn').addEventListener('click', () => closeModeModal.classList.remove('open'));
+closeModeModal.addEventListener('click', e => { if (e.target === closeModeModal) closeModeModal.classList.remove('open'); });
+
+/* Change Passwords Flow */
+const changePasswordBtn = document.getElementById('changePasswordBtn');
+const changePasswordModal = document.getElementById('changePasswordModal');
+const newDashPassInput = document.getElementById('newDashPassInput');
+const newPassInput = document.getElementById('newPassInput');
+const passMsgEl = document.getElementById('passMsg');
+
+changePasswordBtn.addEventListener('click', async () => {
+  newDashPassInput.value = await getStoredDashboardPassword();
+  
+  const { data } = await supabaseClient.from('site_appearance').select('value').eq('key', 'delete_password').maybeSingle();
+  newPassInput.value = data ? data.value : '';
+  
+  passMsgEl.textContent = '';
+  changePasswordModal.classList.add('open');
+  newDashPassInput.focus();
+});
+
+document.getElementById('cancelChangePassBtn').addEventListener('click', () => {
+  changePasswordModal.classList.remove('open');
+});
+
+document.getElementById('confirmChangePassBtn').addEventListener('click', async () => {
+  const newDashPass = newDashPassInput.value.trim();
+  const newDeletePass = newPassInput.value.trim();
+  
+  if (!newDashPass || !newDeletePass) {
+    passMsgEl.textContent = 'Both fields are required.';
+    return;
+  }
+  passMsgEl.textContent = 'Saving...';
+  
+  const { error } = await supabaseClient
+    .from('site_appearance')
+    .upsert([
+      { key: 'dashboard_password', value: newDashPass },
+      { key: 'delete_password', value: newDeletePass }
+    ], { onConflict: 'key' });
+
+  if (error) {
+    passMsgEl.textContent = 'Save failed: ' + error.message;
+  } else {
+    passMsgEl.textContent = '';
+    localStorage.setItem('photobase_dash_auth', newDashPass);
+    changePasswordModal.classList.remove('open');
+    alert('Passwords updated successfully.');
+  }
+});
+
+/* Site Theme Flow */
+const SITE_THEMES = {
+  auto:     { name: 'Auto',     bg: 'linear-gradient(90deg,#000 50%,#f5f5f7 50%)' },
+  dark:     { name: 'Dark',     bg: '#000000' },
+  light:    { name: 'Light',    bg: '#f5f5f7' },
+  midnight: { name: 'Midnight', bg: '#0a1128' },
+  warm:     { name: 'Warm',     bg: '#1a1410' },
+  ocean:    { name: 'Ocean',    bg: '#06181f' },
+  forest:   { name: 'Forest',   bg: '#0a1a12' },
+  rose:     { name: 'Rose',     bg: '#1c0f17' },
+  paper:    { name: 'Paper',    bg: '#f6f1e7' }
+};
+const SITE_ACCENTS = [
+  { name: 'Blue', hex: '#0a84ff' }, { name: 'Purple', hex: '#bf5af2' }, { name: 'Pink', hex: '#ff375f' },
+  { name: 'Orange', hex: '#ff9f0a' }, { name: 'Green', hex: '#30d158' }, { name: 'Teal', hex: '#40c8e0' },
+  { name: 'Red', hex: '#ff453a' }, { name: 'Yellow', hex: '#ffd60a' }, { name: 'Indigo', hex: '#5e5ce6' },
+  { name: 'Mint', hex: '#63e6be' }, { name: 'Coral', hex: '#ff7a59' }, { name: 'Lime', hex: '#a3e635' }
+];
+const SITE_DEFAULT = { theme: 'dark', accent: '#0a84ff' };
+let siteAppearance = { ...SITE_DEFAULT };
+
+const appearanceBtn = document.getElementById('appearanceBtn');
+const appearanceModal = document.getElementById('appearanceModal');
+const themeGridEl = document.getElementById('themeGrid');
+const accentRowEl = document.getElementById('accentRow');
+const themeMsgEl = document.getElementById('themeMsg');
+
+async function loadSiteAppearance() {
+  const { data, error } = await supabaseClient
+    .from('site_appearance').select('value').eq('key', 'appearance').maybeSingle();
+  if (error) return;
+  if (data && data.value) {
+    try {
+      const v = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+      if (SITE_THEMES[v.theme] && /^#[0-9a-fA-F]{6}$/.test(v.accent || '')) siteAppearance = { theme: v.theme, accent: v.accent };
+    } catch (e) {}
+  }
+}
+
+async function saveSiteAppearance() {
+  themeMsgEl.textContent = 'Saving...';
+  const { error } = await supabaseClient
+    .from('site_appearance')
+    .upsert({ key: 'appearance', value: JSON.stringify(siteAppearance) }, { onConflict: 'key' });
+  if (error) {
+    themeMsgEl.textContent = 'Save failed: ' + error.message;
+  } else {
+    themeMsgEl.textContent = 'Saved successfully.';
+  }
+}
+
+function applyDashAccent(hex) {
+  const n = parseInt(hex.replace('#', ''), 16);
+  const r = document.documentElement.style;
+  r.setProperty('--accent', hex);
+  r.setProperty('--accent-rgb', [(n >> 16) & 255, (n >> 8) & 255, n & 255].join(', '));
+}
+
+function renderSiteThemeUI() {
+  applyDashAccent(siteAppearance.accent);
+  themeGridEl.innerHTML = '';
+  Object.keys(SITE_THEMES).forEach(key => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'theme-opt' + (siteAppearance.theme === key ? ' active' : '');
+    const pv = document.createElement('div');
+    pv.className = 'theme-preview';
+    pv.style.background = SITE_THEMES[key].bg;
+    pv.style.setProperty('--pv-accent', siteAppearance.accent);
+    b.appendChild(pv);
+    b.appendChild(document.createTextNode(SITE_THEMES[key].name));
+    b.addEventListener('click', () => { siteAppearance.theme = key; renderSiteThemeUI(); saveSiteAppearance(); });
+    themeGridEl.appendChild(b);
+  });
+
+  accentRowEl.innerHTML = '';
+  const presets = SITE_ACCENTS.map(a => a.hex.toLowerCase());
+  SITE_ACCENTS.forEach(ac => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.title = ac.name;
+    dot.className = 'accent-dot' + (siteAppearance.accent.toLowerCase() === ac.hex.toLowerCase() ? ' active' : '');
+    dot.style.background = ac.hex;
+    dot.addEventListener('click', () => { siteAppearance.accent = ac.hex; renderSiteThemeUI(); saveSiteAppearance(); });
+    accentRowEl.appendChild(dot);
+  });
+
+  // Custom color chooser
+  const isCustom = !presets.includes(siteAppearance.accent.toLowerCase());
+  const custom = document.createElement('label');
+  custom.className = 'accent-dot accent-custom' + (isCustom ? ' active' : '');
+  custom.title = 'Custom color';
+  if (isCustom) custom.style.background = siteAppearance.accent;
+  const picker = document.createElement('input');
+  picker.type = 'color';
+  picker.value = siteAppearance.accent;
+  picker.setAttribute('aria-label', 'Custom accent color');
+  picker.addEventListener('input', () => {
+    siteAppearance.accent = picker.value;
+    applyDashAccent(picker.value);
+    themeGridEl.querySelectorAll('.theme-preview').forEach(pv => pv.style.setProperty('--pv-accent', picker.value));
+    accentRowEl.querySelectorAll('.accent-dot').forEach(d => d.classList.remove('active'));
+    custom.classList.add('active');
+    custom.style.background = picker.value;
+  });
+  picker.addEventListener('change', () => { siteAppearance.accent = picker.value; renderSiteThemeUI(); saveSiteAppearance(); });
+  custom.appendChild(picker);
+  accentRowEl.appendChild(custom);
+}
+
+appearanceBtn.addEventListener('click', async () => {
+  themeMsgEl.textContent = '';
+  appearanceModal.classList.add('open');
+  renderSiteThemeUI();
+  await loadSiteAppearance();
+  renderSiteThemeUI();
+});
+document.getElementById('closeAppearanceBtn').addEventListener('click', () => appearanceModal.classList.remove('open'));
+appearanceModal.addEventListener('click', e => { if (e.target === appearanceModal) appearanceModal.classList.remove('open'); });
+document.getElementById('resetThemeBtn').addEventListener('click', () => {
+  siteAppearance = { ...SITE_DEFAULT };
+  renderSiteThemeUI();
+  saveSiteAppearance();
+});
+
+/* Settings: delete controls */
+const settingsModal = document.getElementById('settingsModal');
+const settingsMsgEl = document.getElementById('settingsMsg');
+const settingToggles = {
+  delete_enabled:   { el: document.getElementById('deleteEnabledToggle'), def: true  },
+  anyone_can_delete:{ el: document.getElementById('anyoneDeleteToggle'),  def: false },
+  delete_password_enabled: { el: document.getElementById('deletePasswordToggle'), def: true },
+  download_protection: { el: document.getElementById('downloadProtectToggle'), def: false }
+};
+
+async function loadSettingToggles() {
+  const { data, error } = await supabaseClient
+    .from('site_appearance').select('key,value').in('key', Object.keys(settingToggles));
+  if (error) { settingsMsgEl.textContent = 'Could not load settings: ' + error.message; return; }
+  const map = {};
+  (data || []).forEach(r => { map[r.key] = String(r.value); });
+  Object.keys(settingToggles).forEach(k => {
+    const t = settingToggles[k];
+    t.el.checked = map[k] === undefined ? t.def : map[k] === 'true';
+  });
+}
+
+Object.keys(settingToggles).forEach(key => {
+  const t = settingToggles[key];
+  t.el.addEventListener('change', async () => {
+    const next = t.el.checked;
+    t.el.disabled = true;
+    settingsMsgEl.textContent = 'Saving...';
+    const { data, error } = await supabaseClient
+      .from('site_appearance')
+      .upsert({ key: key, value: next ? 'true' : 'false' }, { onConflict: 'key' })
+      .select('key');
+    t.el.disabled = false;
+    if (error || !data || data.length === 0) {
+      t.el.checked = !next;
+      settingsMsgEl.textContent = 'Save failed: ' + (error ? error.message : 'blocked by the database.');
+    } else {
+      settingsMsgEl.textContent = 'Saved.';
+    }
+  });
+});
+
+document.getElementById('settingsBtn').addEventListener('click', () => {
+  settingsMsgEl.textContent = '';
+  settingsModal.classList.add('open');
+  loadSettingToggles();
+  loadExtraSettings();
+});
+document.getElementById('closeSettingsBtn').addEventListener('click', () => settingsModal.classList.remove('open'));
+settingsModal.addEventListener('click', e => { if (e.target === settingsModal) settingsModal.classList.remove('open'); });
+
+async function checkConnection() {
+  const b = document.getElementById('connBadge');
+  const a = await supabaseClient.from('site_appearance').select('key').limit(1);
+  const p = await supabaseClient.from('photos').select('id,hidden').limit(1);
+  const ok = !a.error && !p.error;
+  b.textContent = ok ? 'Live · connected' : 'Not connected';
+  b.classList.toggle('bad', !ok);
+}
+
+/* Daily upload limit */
+let dailyLimit = 0;
+let previewOwner = null;
+const shortId = id => String(id || '').slice(0, 8);
+
+async function loadExtraSettings() {
+  const { data, error } = await supabaseClient
+    .from('site_appearance').select('key,value').in('key', ['daily_upload_limit', 'upload_quality', 'storage_limit_mb']);
+  if (error) return;
+  const map = {};
+  (data || []).forEach(r => { map[r.key] = r.value; });
+  dailyLimit = parseInt(map.daily_upload_limit, 10) || 0;
+  const inp = document.getElementById('dailyLimitInput');
+  if (inp) inp.value = dailyLimit;
+  const q = parseInt(map.upload_quality, 10);
+  uploadQuality = QUALITY_LEVELS[q] ? q : 2;
+  showQuality();
+  const sl = parseInt(map.storage_limit_mb, 10);
+  storageLimitMb = sl > 0 ? sl : 1024;
+  const sInp = document.getElementById('storageLimitInput');
+  if (sInp) sInp.value = storageLimitMb;
+  calculateStats();
+}
+
+function showQuality() {
+  const sl = document.getElementById('uploadQualitySlider');
+  if (sl) sl.value = uploadQuality;
+  const d = document.getElementById('uploadQualityDesc');
+  if (d) d.textContent = QUALITY_LEVELS[uploadQuality].desc;
+}
+
+document.getElementById('uploadQualitySlider').addEventListener('input', e => {
+  const q = parseInt(e.target.value, 10);
+  document.getElementById('uploadQualityDesc').textContent = QUALITY_LEVELS[q].desc;
+});
+document.getElementById('uploadQualitySlider').addEventListener('change', async e => {
+  const q = parseInt(e.target.value, 10);
+  const msg = document.getElementById('settingsMsg');
+  msg.textContent = 'Saving...';
+  const { data, error } = await supabaseClient
+    .from('site_appearance').upsert({ key: 'upload_quality', value: String(q) }, { onConflict: 'key' }).select('key');
+  if (error || !data || data.length === 0) {
+    msg.textContent = 'Save failed: ' + (error ? error.message : 'blocked by the database.');
+    showQuality();
+  } else {
+    uploadQuality = q;
+    msg.textContent = 'Saved: ' + QUALITY_LEVELS[q].name + ' quality.';
+  }
+});
+
+document.getElementById('dailyLimitInput').addEventListener('change', async e => {
+  const n = Math.max(0, parseInt(e.target.value, 10) || 0);
+  e.target.value = n;
+  const msg = document.getElementById('settingsMsg');
+  msg.textContent = 'Saving...';
+  const { data, error } = await supabaseClient
+    .from('site_appearance').upsert({ key: 'daily_upload_limit', value: String(n) }, { onConflict: 'key' }).select('key');
+  if (error || !data || data.length === 0) {
+    msg.textContent = 'Save failed: ' + (error ? error.message : 'blocked by the database.');
+  } else {
+    dailyLimit = n;
+    msg.textContent = 'Saved.';
+  }
+});
+
+/* Activity chart: uploads (from photos) + visitors (from the "visits" table) */
+let visitDays = null; // { 'YYYY-MM-DD': count }, or null if the visits table isn't set up
+const CHART_DAYS = 14;
+const dayKey = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+function renderActivityChart() {
+  const barsEl = document.getElementById('chartBars');
+  if (!barsEl) return;
+  const days = [];
+  for (let i = CHART_DAYS - 1; i >= 0; i--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - i); days.push(d);
+  }
+  const up = {};
+  currentPhotos.forEach(p => { const k = dayKey(new Date(p.created_at)); up[k] = (up[k] || 0) + 1; });
+  const rows = days.map(d => { const k = dayKey(d); return { d, up: up[k] || 0, vis: visitDays ? (visitDays[k] || 0) : 0 }; });
+  const max = Math.max(1, ...rows.map(r => Math.max(r.up, r.vis)));
+  const H = 100;
+  barsEl.innerHTML = rows.map(r => {
+    const hu = r.up ? Math.max(3, Math.round(r.up / max * H)) : 2;
+    const hv = r.vis ? Math.max(3, Math.round(r.vis / max * H)) : 2;
+    const visBar = visitDays ? `<div class="bw"><span class="bv">${r.vis || ''}</span><div class="chart-bar vis" style="height:${hv}px"></div></div>` : '';
+    const tip = r.d.toLocaleDateString() + ': ' + r.up + ' uploads' + (visitDays ? ', ' + r.vis + ' visitors' : '');
+    return `<div class="chart-col" title="${escapeHtml(tip)}"><div class="chart-pair"><div class="bw"><span class="bv">${r.up || ''}</span><div class="chart-bar up" style="height:${hu}px"></div></div>${visBar}</div><div class="chart-day">${r.d.getDate()}/${r.d.getMonth() + 1}</div></div>`;
+  }).join('');
+  const totalUp = rows.reduce((n, r) => n + r.up, 0);
+  const totalVis = rows.reduce((n, r) => n + r.vis, 0);
+  document.getElementById('chartNote').textContent = visitDays
+    ? `Last ${CHART_DAYS} days: ${totalUp} uploads · ${totalVis} visitor-days`
+    : `Last ${CHART_DAYS} days: ${totalUp} uploads. Visitor stats need the "visits" table (run visits_setup.sql).`;
+}
+
+async function loadVisits() {
+  if (document.hidden) return;
+  const since = new Date(); since.setHours(0, 0, 0, 0); since.setDate(since.getDate() - (CHART_DAYS - 1));
+  const { data, error } = await supabaseClient
+    .from('visits').select('day').gte('day', dayKey(since)).order('day', { ascending: false }).limit(10000);
+  if (error) { visitDays = null; }
+  else { visitDays = {}; (data || []).forEach(r => { visitDays[r.day] = (visitDays[r.day] || 0) + 1; }); }
+  renderActivityChart();
+}
+
+/* Full-size photo preview */
+const previewModal = document.getElementById('previewModal');
+const previewImg = document.getElementById('previewImg');
+const previewCap = document.getElementById('previewCap');
+let previewId = null;
+
+async function openPreview(id) {
+  const p = byId.get(String(id));
+  if (!p) return;
+  previewId = String(id);
+  previewOwner = p.owner_id || null;
+  previewCap.innerHTML = escapeHtml(p.name || 'Untitled Photo') + '<small>' + escapeHtml(new Date(p.created_at).toLocaleString()) + '</small>'
+    + (p.owner_id ? '<small>Uploader ' + escapeHtml(shortId(p.owner_id)) + '</small>' : '');
+  const cachedThumb = storageThumb(p) || thumbCache.get(previewId);
+  previewImg.src = cachedThumb || BLANK;
+  previewImg.classList.add('loading');
+  previewModal.classList.add('open');
+  if (p.path) {
+    const full = publicUrl(p.path);
+    const pre = new Image();
+    pre.onload = () => { if (previewId === String(id)) { previewImg.src = full; previewImg.classList.remove('loading'); } };
+    pre.onerror = () => { if (previewId === String(id)) previewCap.innerHTML += '<small>Could not load the full image.</small>'; };
+    pre.src = full;
+    return;
+  }
+  const { data, error } = await supabaseClient.from('photos').select('data').eq('id', p.id).maybeSingle();
+  if (previewId !== String(id)) return; // closed or switched meanwhile
+  if (error || !data || !data.data) {
+    previewCap.innerHTML += '<small>Could not load the full image.</small>';
+    return;
+  }
+  previewImg.src = data.data;
+  previewImg.classList.remove('loading');
+}
+
+function closePreview() {
+  previewModal.classList.remove('open');
+  previewId = null;
+  previewOwner = null;
+  previewImg.removeAttribute('src');
+}
+document.getElementById('previewCloseBtn').addEventListener('click', closePreview);
+previewModal.addEventListener('click', e => { if (e.target === previewModal) closePreview(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && previewModal.classList.contains('open')) closePreview(); });
+
+/* Photos added today */
+const todayModal = document.getElementById('todayModal');
+const todayGridEl = document.getElementById('todayGrid');
+
+function openTodayModal() {
+  const today = new Date().toDateString();
+  const list = currentPhotos.filter(p => new Date(p.created_at).toDateString() === today);
+  document.getElementById('todaySummary').textContent =
+    list.length + (list.length === 1 ? ' photo' : ' photos') + ' added today.';
+  if (!list.length) {
+    todayGridEl.style.display = 'block';
+    todayGridEl.innerHTML = '<div class="online-empty">No photos added today.</div>';
+  } else {
+    todayGridEl.style.display = '';
+    todayGridEl.innerHTML = list.map(p => {
+      const id = escapeHtml(p.id);
+      const cached = storageThumb(p) || thumbCache.get(String(p.id));
+      return `<div class="today-item"><img src="${cached || BLANK}" data-id="${id}" alt="" ${cached ? '' : 'data-lazy="1"'}><div class="t-info"><b>${escapeHtml(p.name || 'Untitled Photo')}</b>${new Date(p.created_at).toLocaleTimeString()}${p.hidden ? ' · Hidden' : ''}</div></div>`;
+    }).join('');
+    todayGridEl.querySelectorAll('img[data-lazy]').forEach(img => io.observe(img));
+  }
+  todayModal.classList.add('open');
+}
+
+document.getElementById('todayCard').addEventListener('click', openTodayModal);
+todayGridEl.addEventListener('click', e => {
+  const img = e.target.closest('img[data-id]');
+  if (img) openPreview(img.dataset.id);
+});
+document.getElementById('closeTodayBtn').addEventListener('click', () => todayModal.classList.remove('open'));
+todayModal.addEventListener('click', e => { if (e.target === todayModal) todayModal.classList.remove('open'); });
+
+/* Online visitors list (device info) */
+const onlineModal = document.getElementById('onlineModal');
+const onlineListEl = document.getElementById('onlineList');
+const onlineSummaryEl = document.getElementById('onlineSummary');
+
+/* Weekly visitor log: saved in this browser, auto-resets every Monday */
+const VLOG_KEY = 'pb_visitor_log_v1';
+let onlineTab = 'online';
+let lastPresenceState = {};
+
+function weekStartKey() {
+  const x = new Date(); x.setHours(0, 0, 0, 0);
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); // Monday
+  return dayKey(x);
+}
+function getVLog() {
+  let log = null;
+  try { log = JSON.parse(localStorage.getItem(VLOG_KEY)); } catch (e) {}
+  if (!log || log.week !== weekStartKey() || !log.visitors) {
+    log = { week: weekStartKey(), visitors: {} }; // new week -> start fresh
+    saveVLog(log);
+  }
+  return log;
+}
+function saveVLog(log) { try { localStorage.setItem(VLOG_KEY, JSON.stringify(log)); } catch (e) {} }
+
+function recordVisitors(state) {
+  const keys = Object.keys(state || {});
+  if (!keys.length) return;
+  const log = getVLog();
+  const nowIso = new Date().toISOString();
+  const today = dayKey(new Date());
+  keys.forEach(k => {
+    const m = (state[k] && state[k][0]) || {};
+    const fp = [m.device, m.os, m.browser, m.screen, m.tz, m.lang].map(v => v || '').join('|');
+    const r = log.visitors[fp] || (log.visitors[fp] = {
+      device: m.device || '', type: m.type || '', os: m.os || '', browser: m.browser || '',
+      screen: m.screen || '', lang: m.lang || '', tz: m.tz || '', first: nowIso, days: [], keys: [], sessions: 0
+    });
+    if (!r.keys.includes(k)) { r.keys.push(k); r.sessions++; if (r.keys.length > 200) r.keys.shift(); }
+    if (!r.days.includes(today)) r.days.push(today);
+    r.last = nowIso;
+  });
+  saveVLog(log);
+}
+
+function visitorCard(m, extra) {
+  return `<div class="online-item">
+    <div class="o-top"><span class="o-device">${escapeHtml(m.device || 'Unknown device')}</span><span class="o-type">${escapeHtml(m.type || 'Device')}</span></div>
+    <div class="o-meta">${escapeHtml(m.os || '')} · ${escapeHtml(m.browser || '')}<br>Screen ${escapeHtml(m.screen || '—')}${m.lang ? ' · ' + escapeHtml(m.lang) : ''}${m.tz ? ' · ' + escapeHtml(m.tz) : ''}</div>
+    ${extra || ''}
+  </div>`;
+}
+
+function renderOnlineList(state) {
+  if (state) { lastPresenceState = state; recordVisitors(state); }
+  document.querySelectorAll('.vtab').forEach(t => t.classList.toggle('active', t.dataset.tab === onlineTab));
+
+  if (onlineTab === 'online') {
+    const st = lastPresenceState || {};
+    const keys = Object.keys(st);
+    onlineSummaryEl.textContent = keys.length + (keys.length === 1 ? ' visitor' : ' visitors') + ' on the website right now.';
+    if (!keys.length) { onlineListEl.innerHTML = '<div class="online-empty">Nobody is on the website right now.</div>'; return; }
+    onlineListEl.innerHTML = keys.map(k => {
+      const m = (st[k] && st[k][0]) || {};
+      const since = m.online_at ? new Date(m.online_at).toLocaleTimeString() : '';
+      return visitorCard(m, since ? `<div class="o-meta" style="margin-top:0;">Joined ${escapeHtml(since)}</div>` : '');
+    }).join('');
+    return;
+  }
+
+  const log = getVLog();
+  const today = dayKey(new Date());
+  let list = Object.values(log.visitors);
+  if (onlineTab === 'today') list = list.filter(r => r.days.includes(today));
+  list.sort((a, b) => (b.last || '').localeCompare(a.last || ''));
+  const weekLabel = new Date(log.week + 'T00:00:00').toLocaleDateString();
+  onlineSummaryEl.textContent = list.length + (list.length === 1 ? ' visitor ' : ' visitors ')
+    + (onlineTab === 'today' ? 'today.' : 'this week (since Monday ' + weekLabel + ').');
+  if (!list.length) {
+    onlineListEl.innerHTML = '<div class="online-empty">' + (onlineTab === 'today' ? 'No visitors recorded today.' : 'No visitors recorded this week.') + '</div>';
+    return;
+  }
+  onlineListEl.innerHTML = list.map(r => {
+    const first = new Date(r.first), last = new Date(r.last);
+    const seen = `<div class="o-seen">First seen ${escapeHtml(first.toLocaleDateString() + ' ' + first.toLocaleTimeString())}<br>Last seen ${escapeHtml(last.toLocaleDateString() + ' ' + last.toLocaleTimeString())}<br>${r.sessions} ${r.sessions === 1 ? 'visit' : 'visits'} · ${r.days.length} ${r.days.length === 1 ? 'day' : 'days'}</div>`;
+    return visitorCard(r, seen);
+  }).join('');
+}
+
+document.querySelectorAll('.vtab').forEach(t => t.addEventListener('click', () => { onlineTab = t.dataset.tab; renderOnlineList(); }));
+setInterval(() => { if (onlineModal.classList.contains('open')) renderOnlineList(); else getVLog(); }, 60000);
+
+document.getElementById('onlineCard').addEventListener('click', () => { onlineTab = 'online'; renderOnlineList(); onlineModal.classList.add('open'); });
+document.getElementById('closeOnlineBtn').addEventListener('click', () => onlineModal.classList.remove('open'));
+onlineModal.addEventListener('click', e => { if (e.target === onlineModal) onlineModal.classList.remove('open'); });
+
+/* Live visitor count (listens only; the dashboard itself is not counted) */
+let presenceStarted = false;
+function startPresence() {
+  if (presenceStarted) return;
+  presenceStarted = true;
+  const el = document.getElementById('statOnline');
+  const ch = supabaseClient.channel('site-online');
+  const update = () => {
+    const state = ch.presenceState();
+    const keys = Object.keys(state);
+    el.textContent = keys.length;
+    renderOnlineList(state);
+  };
+  ch.on('presence', { event: 'sync' }, update)
+    .on('presence', { event: 'join' }, update)
+    .on('presence', { event: 'leave' }, update)
+    .subscribe();
+}
+
+/* ---------- Supabase Storage helpers ---------- */
+const BUCKET = 'photos';
+const THUMB_SIZE = 480;
+let storageReady = true;
+
+function publicUrl(path) { return supabaseClient.storage.from(BUCKET).getPublicUrl(path).data.publicUrl; }
+function storageThumb(p) { return p.thumb_path ? publicUrl(p.thumb_path) : (p.path ? publicUrl(p.path) : null); }
+function newFileId() {
+  return crypto.randomUUID ? crypto.randomUUID()
+    : (Date.now().toString(36) + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2));
+}
+
+async function removeStorageFiles(rows) {
+  const files = [];
+  rows.forEach(r => { if (r.path) files.push(r.path); if (r.thumb_path) files.push(r.thumb_path); });
+  for (let i = 0; i < files.length; i += 100) {
+    const { error } = await supabaseClient.storage.from(BUCKET).remove(files.slice(i, i + 100));
+    if (error) console.warn('Storage cleanup failed', error);
+  }
+}
+
+/* ---------- One-time move of old base64 photos into Storage ---------- */
+const migrateBtn = document.getElementById('migrateBtn');
+let migrating = false;
+
+function legacyPhotos() { return currentPhotos.filter(p => !p.path); }
+
+function updateMigrateButton() {
+  if (migrating) return;
+  const n = storageReady ? legacyPhotos().length : 0;
+  migrateBtn.style.display = n ? 'inline-flex' : 'none';
+  migrateBtn.textContent = 'Move ' + n + (n === 1 ? ' photo' : ' photos') + ' to Storage';
+}
+
+function blobToImage(blob) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(blob);
+    const im = new Image();
+    im.onload = () => { URL.revokeObjectURL(url); resolve(im); };
+    im.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not decode image.')); };
+    im.src = url;
+  });
+}
+
+function canvasToBlob(canvas, quality) {
+  return new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error('Encode failed')), 'image/jpeg', quality));
+}
+
+async function migratePhoto(p) {
+  const { data, error } = await supabaseClient.from('photos').select('data').eq('id', p.id).maybeSingle();
+  if (error || !data || !data.data) throw error || new Error('No image data for this photo.');
+
+  const full = await (await fetch(data.data)).blob();
+  const im = await blobToImage(full);
+  const r = Math.min(1, THUMB_SIZE / Math.max(im.naturalWidth, im.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(im.naturalWidth * r));
+  c.height = Math.max(1, Math.round(im.naturalHeight * r));
+  c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+  const thumb = await canvasToBlob(c, 0.72);
+
+  const ext = full.type === 'image/png' ? 'png' : full.type === 'image/webp' ? 'webp' : 'jpg';
+  const fid = newFileId();
+  const fullPath = 'full/' + fid + '.' + ext;
+  const thumbPath = 'thumb/' + fid + '.jpg';
+  const bucket = supabaseClient.storage.from(BUCKET);
+
+  let up = await bucket.upload(fullPath, full, { contentType: ext === 'jpg' ? 'image/jpeg' : full.type, cacheControl: '31536000', upsert: false });
+  if (up.error) throw up.error;
+  up = await bucket.upload(thumbPath, thumb, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+  if (up.error) { await bucket.remove([fullPath]); throw up.error; }
+
+  // Only clear the old base64 column once both files are safely uploaded
+  const upd = await supabaseClient.from('photos')
+    .update({ path: fullPath, thumb_path: thumbPath, size: full.size + thumb.size, img_w: im.naturalWidth, img_h: im.naturalHeight, data: null })
+    .eq('id', p.id).select('id');
+  if (upd.error || !upd.data || !upd.data.length) {
+    await bucket.remove([fullPath, thumbPath]);
+    throw upd.error || new Error('Update was blocked by the database.');
+  }
+}
+
+async function runMigration() {
+  const list = legacyPhotos();
+  if (!list.length || migrating) return;
+  if (!confirm('Move ' + list.length + (list.length === 1 ? ' photo' : ' photos') + ' from the database into Storage? Keep this page open until it finishes.')) return;
+  migrating = true;
+  migrateBtn.disabled = true;
+  let ok = 0, failed = 0;
+  for (let i = 0; i < list.length; i++) {
+    migrateBtn.textContent = 'Moving ' + (i + 1) + ' of ' + list.length + '…';
+    statusEl.textContent = 'Moving photos to Storage: ' + (i + 1) + ' of ' + list.length;
+    try { await migratePhoto(list[i]); ok++; }
+    catch (e) { failed++; console.error('Migration failed for', list[i].id, e); }
+  }
+  migrating = false;
+  migrateBtn.disabled = false;
+  await loadDashboard(true);
+  updateMigrateButton();
+  statusEl.textContent = 'Moved ' + ok + (ok === 1 ? ' photo' : ' photos') + ' to Storage.' + (failed ? ' ' + failed + ' failed (see browser console); run again to retry.' : '');
+}
+migrateBtn.addEventListener('click', runMigration);
+
+/* ---------- Upload photos from the dashboard ---------- */
+const dashUploadBtn = document.getElementById('dashUploadBtn');
+const dashUploadInput = document.getElementById('dashUploadInput');
+const dashUploadLabel = document.getElementById('dashUploadLabel');
+let dashUploading = false;
+
+const UPLOAD_PARALLEL = 5;   // photos uploaded at the same time
+// Upload quality levels (the slider in Settings). side = longest edge in px, q = JPEG quality,
+// keepBytes = a JPEG that already fits and is smaller than this is uploaded untouched (no re-compression, no quality loss).
+const QUALITY_LEVELS = {
+  1: { name: 'Fast',     side: 1280, q: 0.72, keepBytes: 350 * 1024,  desc: 'Fast: smaller photos (1280px). Uploads quickest.' },
+  2: { name: 'Balanced', side: 1600, q: 0.82, keepBytes: 700 * 1024,  desc: 'Balanced: 1600px. Good quality and speed.' },
+  3: { name: 'High',     side: 2400, q: 0.92, keepBytes: 1500 * 1024, desc: 'High: 2400px. Best quality, bigger files, slower.' }
+};
+let uploadQuality = 2;
+
+async function decodeImage(file) {
+  if (window.createImageBitmap) {
+    try { const bm = await createImageBitmap(file); return { src: bm, w: bm.width, h: bm.height }; } catch (e) {}
+  }
+  const im = await blobToImage(file);
+  return { src: im, w: im.naturalWidth, h: im.naturalHeight };
+}
+
+function drawScaled(img, maxSide) {
+  const r = Math.min(1, maxSide / Math.max(img.w, img.h));
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(img.w * r));
+  c.height = Math.max(1, Math.round(img.h * r));
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img.src, 0, 0, c.width, c.height);
+  return c;
+}
+
+// Every photo becomes a JPEG sized by the quality slider + a 480px thumbnail.
+// Speed-ups that do not reduce quality: small JPEGs are uploaded as-is, the thumbnail is made
+// from the already-scaled copy, and several photos upload in parallel.
+async function uploadOnePhoto(file, onStage) {
+  const stage = onStage || (() => {});
+  const lv = QUALITY_LEVELS[uploadQuality] || QUALITY_LEVELS[2];
+  const img = await decodeImage(file);
+  stage(0.2);
+  const isJpeg = file.type === 'image/jpeg';
+  const fits = Math.max(img.w, img.h) <= lv.side;
+  const keepOriginal = isJpeg && fits && file.size <= lv.keepBytes;
+  const fullCanvas = keepOriginal ? null : drawScaled(img, lv.side);
+  const fw = fullCanvas ? fullCanvas.width : img.w;
+  const fh = fullCanvas ? fullCanvas.height : img.h;
+  const thumbSrc = fullCanvas ? { src: fullCanvas, w: fw, h: fh } : img;
+  const [fullBlob, thumb] = await Promise.all([
+    keepOriginal ? Promise.resolve(file) : canvasToBlob(fullCanvas, lv.q),
+    canvasToBlob(drawScaled(thumbSrc, THUMB_SIZE), 0.72)
+  ]);
+  // never make a JPEG that already fits bigger than it was
+  const full = (isJpeg && fits && fullBlob.size >= file.size) ? file : fullBlob;
+  if (img.src.close) img.src.close();
+  stage(0.4);
+
+  const fid = newFileId();
+  const fullPath = 'full/' + fid + '.jpg';
+  const thumbPath = 'thumb/' + fid + '.jpg';
+  const bucket = supabaseClient.storage.from(BUCKET);
+  const opts = { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false };
+
+  const [u1, u2] = await Promise.all([
+    bucket.upload(fullPath, full, opts),
+    bucket.upload(thumbPath, thumb, opts)
+  ]);
+  if (u1.error || u2.error) {
+    await bucket.remove([fullPath, thumbPath]);
+    throw u1.error || u2.error;
+  }
+  stage(0.85);
+
+  const ins = await supabaseClient.from('photos')
+    .insert({ name: file.name, path: fullPath, thumb_path: thumbPath, size: full.size + thumb.size, img_w: fw, img_h: fh })
+    .select('id');
+  if (ins.error || !ins.data || !ins.data.length) {
+    await bucket.remove([fullPath, thumbPath]);
+    throw ins.error || new Error('Insert was blocked by the database.');
+  }
+}
+
+async function runDashUpload(files) {
+  if (!files.length || dashUploading) return;
+  if (!storageReady) { statusEl.textContent = 'Run storage_setup.sql in Supabase first to enable uploads.'; return; }
+  dashUploading = true;
+  dashUploadBtn.disabled = true;
+  let ok = 0, failed = 0, next = 0;
+  const total = files.length;
+  const part = new Array(total).fill(0); // 0..1 progress of each photo
+  const progress = () => {
+    const pct = Math.round(part.reduce((n, v) => n + v, 0) / total * 100);
+    dashUploadBtn.style.setProperty('--p', pct + '%');
+    dashUploadLabel.textContent = pct + '%';
+    statusEl.textContent = 'Uploading… ' + (ok + failed) + ' of ' + total + ' done';
+  };
+  progress();
+  const worker = async () => {
+    while (next < total) {
+      const i = next++;
+      try { await uploadOnePhoto(files[i], v => { part[i] = v; progress(); }); ok++; }
+      catch (e) { failed++; console.error('Upload failed for', files[i].name, e); }
+      part[i] = 1;
+      progress();
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(UPLOAD_PARALLEL, total) }, worker));
+  dashUploading = false;
+  dashUploadBtn.disabled = false;
+  dashUploadLabel.textContent = 'Upload';
+  setTimeout(() => dashUploadBtn.style.setProperty('--p', '0%'), 400);
+  await loadDashboard(true);
+  statusEl.textContent = 'Uploaded ' + ok + (ok === 1 ? ' photo.' : ' photos.') + (failed ? ' ' + failed + ' failed (see browser console).' : '');
+}
+
+dashUploadBtn.addEventListener('click', () => { if (!dashUploading) dashUploadInput.click(); });
+dashUploadInput.addEventListener('change', () => {
+  const files = Array.from(dashUploadInput.files).filter(f => f.type.startsWith('image/'));
+  dashUploadInput.value = '';
+  runDashUpload(files);
+});
+
+/* ---------- Storage meter + warning ---------- */
+let storageLimitMb = 1024;
+
+function updateStorageMeter(bytes) {
+  const bar = document.getElementById('statStorageBar');
+  const sub = document.getElementById('statStorageSub');
+  const warn = document.getElementById('storageWarn');
+  if (!bar) return;
+  if (bytes === null) { bar.style.width = '0%'; bar.className = ''; sub.textContent = ''; warn.hidden = true; return; }
+  const usedMb = bytes / (1024 * 1024);
+  const pct = Math.min(100, usedMb / storageLimitMb * 100);
+  bar.style.width = pct + '%';
+  bar.className = pct >= 95 ? 'crit' : pct >= 80 ? 'warn' : '';
+  sub.textContent = pct.toFixed(1) + '% of ' + storageLimitMb + ' MB';
+  if (pct >= 80) {
+    warn.hidden = false;
+    warn.className = 'storage-warn' + (pct >= 95 ? ' crit' : '');
+    warn.textContent = (pct >= 95 ? 'Storage almost full: ' : 'Storage is getting full: ')
+      + usedMb.toFixed(0) + ' of ' + storageLimitMb + ' MB used (' + Math.round(pct) + '%). Delete old photos or upgrade your plan.';
+  } else {
+    warn.hidden = true;
+  }
+}
+
+document.getElementById('storageLimitInput').addEventListener('change', async e => {
+  const n = Math.max(1, parseInt(e.target.value, 10) || 1024);
+  e.target.value = n;
+  const msg = document.getElementById('settingsMsg');
+  msg.textContent = 'Saving...';
+  const { data, error } = await supabaseClient
+    .from('site_appearance').upsert({ key: 'storage_limit_mb', value: String(n) }, { onConflict: 'key' }).select('key');
+  if (error || !data || data.length === 0) {
+    msg.textContent = 'Save failed: ' + (error ? error.message : 'blocked by the database.');
+  } else {
+    storageLimitMb = n;
+    msg.textContent = 'Saved.';
+    calculateStats();
+  }
+});
+
+/* ---------- Reported photos (visitors tap Report on the website) ---------- */
+let reportMap = new Map(); // photo id -> { count, last }
+let reportsReady = true;
+let reportSig = '';
+const reportsModal = document.getElementById('reportsModal');
+const reportListEl = document.getElementById('reportList');
+const reportsCard = document.getElementById('reportsCard');
+
+async function loadReports() {
+  if (document.hidden) return;
+  const { data, error } = await supabaseClient.from('reports').select('photo_id,created_at');
+  if (error) {
+    reportsReady = false;
+    reportMap = new Map();
+    document.getElementById('statReports').textContent = '—';
+    reportsCard.title = 'Run reports_setup.sql in Supabase to enable reports';
+    return;
+  }
+  reportsReady = true;
+  const m = new Map();
+  (data || []).forEach(r => {
+    const k = String(r.photo_id);
+    const e = m.get(k) || { count: 0, last: r.created_at };
+    e.count++;
+    if (r.created_at > e.last) e.last = r.created_at;
+    m.set(k, e);
+  });
+  const sig = Array.from(m.entries()).map(([k, v]) => k + ':' + v.count).sort().join('|');
+  reportMap = m;
+  document.getElementById('statReports').textContent = m.size;
+  reportsCard.classList.toggle('has-reports', m.size > 0);
+  reportsCard.title = m.size ? 'Tap to review reported photos' : 'No reported photos';
+  if (sig !== reportSig) {
+    reportSig = sig;
+    renderTable();
+    if (reportsModal.classList.contains('open')) renderReportList();
+  }
+}
+
+function renderReportList() {
+  const items = Array.from(reportMap.entries())
+    .map(([id, v]) => ({ id, v, p: byId.get(id) }))
+    .filter(x => x.p)
+    .sort((a, b) => b.v.count - a.v.count || (b.v.last > a.v.last ? 1 : -1));
+  document.getElementById('reportsSummary').textContent = items.length
+    ? items.length + (items.length === 1 ? ' photo has' : ' photos have') + ' been reported.'
+    : 'No reported photos.';
+  if (!items.length) {
+    reportListEl.innerHTML = '<div class="online-empty">Nothing to review.</div>';
+    return;
+  }
+  reportListEl.innerHTML = items.map(({ id, v, p }) => {
+    const eid = escapeHtml(id);
+    const thumb = storageThumb(p) || thumbCache.get(id);
+    return `<div class="report-item">
+      <img src="${thumb || BLANK}" data-id="${eid}" alt="" ${thumb ? '' : 'data-lazy="1"'}>
+      <div>
+        <div class="r-name">${escapeHtml(p.name || 'Untitled Photo')}<span class="report-tag">&#9873; ${v.count}</span>${p.hidden ? '<span class="hidden-tag">Hidden</span>' : ''}</div>
+        <div class="r-meta">Last reported ${escapeHtml(new Date(v.last).toLocaleString())}</div>
+        <div class="report-actions">
+          <button type="button" class="btn btn-sm rep-hide ${p.hidden ? '' : 'btn-warn'}" data-id="${eid}">${p.hidden ? 'Show' : 'Hide'}</button>
+          <button type="button" class="btn btn-sm rep-dismiss" data-id="${eid}">Dismiss</button>
+          <button type="button" class="btn btn-sm btn-danger rep-del" data-id="${eid}">Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  reportListEl.querySelectorAll('img[data-lazy]').forEach(img => io.observe(img));
+}
+
+async function refreshReports() {
+  reportSig = '';
+  await loadReports();
+  if (reportsModal.classList.contains('open')) renderReportList();
+}
+
+reportListEl.addEventListener('click', async e => {
+  const img = e.target.closest('img[data-id]');
+  if (img) { openPreview(img.dataset.id); return; }
+  const btn = e.target.closest('button[data-id]');
+  if (!btn) return;
+  const p = byId.get(btn.dataset.id);
+  if (!p) return;
+  if (btn.classList.contains('rep-hide')) {
+    btn.disabled = true;
+    await setPhotosHidden([p.id], !p.hidden);
+    await refreshReports();
+  } else if (btn.classList.contains('rep-dismiss')) {
+    btn.disabled = true;
+    const { error } = await supabaseClient.from('reports').delete().eq('photo_id', p.id).select('photo_id');
+    if (error) { alert('Could not dismiss: ' + error.message); btn.disabled = false; return; }
+    await refreshReports();
+  } else if (btn.classList.contains('rep-del')) {
+    await deleteOnePhoto(btn);
+    await refreshReports();
+  }
+});
+
+reportsCard.addEventListener('click', () => {
+  if (!reportsReady) { alert('Reports are not set up yet. Run reports_setup.sql in the Supabase SQL Editor.'); return; }
+  renderReportList();
+  reportsModal.classList.add('open');
+});
+document.getElementById('closeReportsBtn').addEventListener('click', () => reportsModal.classList.remove('open'));
+reportsModal.addEventListener('click', e => { if (e.target === reportsModal) reportsModal.classList.remove('open'); });
+
+function initDashboard() {
+  startPresence();
+  loadExtraSettings();
+  loadVisits();
+  setInterval(loadVisits, 60000);
+  loadReports();
+  setInterval(loadReports, 30000);
+  checkConnection();
+  loadSiteAppearance().then(() => applyDashAccent(siteAppearance.accent));
+  loadDashboard();
+  loadUploadState();
+  loadWebsiteClosedState();
+  setInterval(() => loadDashboard(), 30000);
+  setInterval(() => { if (!document.hidden) loadUploadState(); }, 10000);
+}
+
+// Initial authorization trigger on page boot
+verifyAuth();
+</script>
+</body>
+</html>
